@@ -1,0 +1,9 @@
+{
+  "version": "v5",
+  "created_after_signal": true,
+  "preview_is_not_forward_performance": true,
+  "industry_rule": "two-digit SIC max 4; SIC division max 6 of 20",
+  "honest_forward_start": "first month-end signal after 2026-10-05",
+  "orders_enabled": false,
+  "signal_date": "2026-09-30"
+}

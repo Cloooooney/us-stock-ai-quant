@@ -1,0 +1,13 @@
+{
+  "model": "fundamental_ridge_v5_sector_guard",
+  "status": "frozen_waiting_for_forward_data",
+  "frozen_at": "2026-10-05",
+  "first_eligible_signal": "2026-10-30_or_later",
+  "orders_enabled": false,
+  "top_n": 20,
+  "max_per_two_digit_sic": 4,
+  "max_per_sic_division": 6,
+  "fundamental_max_age_days": 550,
+  "transaction_cost_bps": 10,
+  "minimum_forward_months_before_review": 6
+}

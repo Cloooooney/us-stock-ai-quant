@@ -1,0 +1,5 @@
+{
+  "selected_on_validation": "fundamental_ridge",
+  "ridge_alpha": 100,
+  "candidate_count": 3
+}

@@ -1,0 +1,7 @@
+{
+  "first_prediction": "2018-01-01",
+  "train_years": 5,
+  "top_n": 20,
+  "cost_bps": 10.0,
+  "seed": 42
+}
