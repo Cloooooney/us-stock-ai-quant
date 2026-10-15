@@ -27,10 +27,10 @@
 
 - [x] Initialize the repository with branch `main`.
 - [x] Stage the curated tree and inspect the complete staged file list.
-- [ ] Run the full test suite and create the initial commit.
+- [x] Run the full test suite and create the initial commit.
 
 ### Task 3: Create and verify GitHub
 
-- [ ] Create `Cloooooney/us-stock-ai-quant` as a private repository.
-- [ ] Push `main` and set the upstream.
-- [ ] Verify remote visibility, default branch, and commit identity.
+- [x] Create `Cloooooney/us-stock-ai-quant` as a private repository.
+- [x] Push `main` and set the upstream.
+- [x] Verify remote visibility, default branch, and commit identity.
