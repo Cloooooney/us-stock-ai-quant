@@ -15,10 +15,15 @@ PERIOD  One holding-period observation from one SIGNAL to the next, measured
 
 Only the model rules are frozen. This module is bookkeeping: it does not change
 scores, sector caps, the holding count, or the cost assumption.
+
+The tracker is model-agnostic: a ``TrackerSpec`` names the model, its freeze
+date, its ledger and output folders. ``V5`` is the default; other frozen models
+(see ``paper_trading.run_v6_forward``) reuse the same code with their own spec.
 """
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
@@ -39,6 +44,21 @@ MIN_CAPITAL_MONTHS = 24  # minimum forward record before any live allocation (do
 BENCHMARK = "SPY"
 ETF_BENCHMARKS = ["RSP", "QUAL", "VLUE", "MTUM", "USMV"]  # supplementary; never block a PERIOD
 EXIT_WINDOW_DAYS = 7  # same exit search window as models.walk_forward.build_monthly_dataset
+
+
+@dataclass(frozen=True)
+class TrackerSpec:
+    key: str                          # short name used in event fields, e.g. "v5"
+    model: str                        # model identifier written to every event
+    frozen_at: pd.Timestamp           # only signals strictly after this date are recorded
+    holding_fields: tuple[str, ...]   # extra descriptive columns copied into each holding
+    ledger: Path
+    signal_dir: Path
+    report_dir: Path
+
+
+V5 = TrackerSpec(key="v5", model=MODEL, frozen_at=FROZEN_AT, holding_fields=("sic", "sic_division"),
+                 ledger=LEDGER, signal_dir=SIGNAL_DIR, report_dir=REPORT_DIR)
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +124,8 @@ def _round(value: float) -> float:
 # Event payloads
 # ---------------------------------------------------------------------------
 
-def signal_payload(selected: pd.DataFrame, universe: list[str], feature_names: list[str]) -> dict:
+def signal_payload(selected: pd.DataFrame, universe: list[str], feature_names: list[str],
+                   spec: TrackerSpec = V5) -> dict:
     signal_dates = pd.to_datetime(selected["date"]).dt.normalize().drop_duplicates()
     if len(signal_dates) != 1:
         raise ValueError("V5 selection must contain exactly one signal date")
@@ -118,16 +139,19 @@ def signal_payload(selected: pd.DataFrame, universe: list[str], feature_names: l
     holdings = []
     for row in selected.sort_values("portfolio_rank").itertuples():
         item = {"ticker": str(row.ticker), "rank": int(row.portfolio_rank), "weight": 1 / TOP_N,
-                "prediction": _round(row.prediction), "sic": str(row.sic), "sic_division": row.sic_division}
+                "prediction": _round(row.prediction)}
+        for field in spec.holding_fields:
+            value = getattr(row, field)
+            item[field] = None if pd.isna(value) else str(value)
         for feature in feature_names:
             value = getattr(row, feature)
             item[feature] = None if pd.isna(value) else _round(value)
         holdings.append(item)
-    return {"event_type": "SIGNAL", "model": MODEL, "signal_date": _date(signal_dates.iloc[0]),
+    return {"event_type": "SIGNAL", "model": spec.model, "signal_date": _date(signal_dates.iloc[0]),
             "holdings": holdings, "universe": sorted(universe), "orders_enabled": False}
 
 
-def entry_payload(signal: dict, prices: pd.DataFrame) -> dict | None:
+def entry_payload(signal: dict, prices: pd.DataFrame, spec: TrackerSpec = V5) -> dict | None:
     """Fills for a ledgered SIGNAL at the next market session, or None if that
     session is not in the data yet. A holding with no bar on the execution date
     (halted, delisted, data gap) is recorded as unfilled and held as cash."""
@@ -142,7 +166,7 @@ def entry_payload(signal: dict, prices: pd.DataFrame) -> dict | None:
               "adjusted_open_at_record": _round(bars.at[t, "adj_open"])}
              for t in tickers if t in bars.index]
     unfilled = [t for t in tickers if t not in bars.index]
-    return {"event_type": "ENTRY", "model": MODEL, "signal_date": signal["signal_date"],
+    return {"event_type": "ENTRY", "model": spec.model, "signal_date": signal["signal_date"],
             "execution_date": _date(execution_date), "fills": fills, "unfilled_held_as_cash": unfilled,
             "benchmark_fill": {"ticker": BENCHMARK, "open": _round(bars.at[BENCHMARK, "open"]),
                                "adjusted_open_at_record": _round(bars.at[BENCHMARK, "adj_open"])},
@@ -168,7 +192,7 @@ def etf_period_returns(prices: pd.DataFrame, start: pd.Timestamp, end: pd.Timest
 
 
 def period_payload(signal: dict, entry: dict, next_signal: dict, prices: pd.DataFrame,
-                   previous_signal: dict | None, observation: int) -> dict | None:
+                   previous_signal: dict | None, observation: int, spec: TrackerSpec = V5) -> dict | None:
     """One holding-period observation from ``signal`` to ``next_signal``, or
     None until the session after ``next_signal`` is in the data."""
     start, end = pd.Timestamp(signal["signal_date"]), pd.Timestamp(next_signal["signal_date"])
@@ -213,11 +237,11 @@ def period_payload(signal: dict, entry: dict, next_signal: dict, prices: pd.Data
     etfs = etf_period_returns(prices, start, end, execution_date, exit_session)
 
     months = (end.to_period("M") - start.to_period("M")).n
-    return {"event_type": "PERIOD", "model": MODEL, "observation": observation,
+    return {"event_type": "PERIOD", "model": spec.model, "observation": observation,
             "signal_date": signal["signal_date"], "next_signal_date": next_signal["signal_date"],
             "entry_execution_date": entry["execution_date"], "exit_execution_date": _date(exit_session),
             "calendar_months": int(months),
-            "v5": {"gross_return": _round(gross), "turnover": _round(turnover), "cost": _round(cost),
+            spec.key: {"gross_return": _round(gross), "turnover": _round(turnover), "cost": _round(cost),
                    "net_return": _round(net), "held": len(filled), "unfilled_cash": TOP_N - len(filled)},
             "point_in_time_equal_weight": {"return": _round(equal_weight), "members": int(len(universe)),
                                            "members_scored": len(signal["universe"])},
@@ -237,7 +261,7 @@ def _events(path: Path, event_type: str) -> dict[str, dict]:
     return {e["signal_date"]: e for e in read_events(path) if e.get("event_type") == event_type}
 
 
-def summarize(path: Path) -> dict:
+def summarize(path: Path, spec: TrackerSpec = V5) -> dict:
     periods = sorted(_events(path, "PERIOD").values(), key=lambda e: e["signal_date"])
     signals, entries = _events(path, "SIGNAL"), _events(path, "ENTRY")
     monthly = [p for p in periods if p["calendar_months"] == 1]
@@ -263,7 +287,7 @@ def summarize(path: Path) -> dict:
             "capital_gate_months": MIN_CAPITAL_MONTHS,
             "capital_gate_months_reached": len(monthly) >= MIN_CAPITAL_MONTHS,
             "pending_entries": sorted(set(signals).difference(entries)),
-            "cumulative": {"v5_net": growth([p["v5"]["net_return"] for p in periods]),
+            "cumulative": {f"{spec.key}_net": growth([p[spec.key]["net_return"] for p in periods]),
                            "point_in_time_equal_weight": growth(
                                [p["point_in_time_equal_weight"]["return"] for p in periods]),
                            "spy": growth([p["spy"]["return"] for p in periods]),
@@ -271,25 +295,32 @@ def summarize(path: Path) -> dict:
 
 
 def track(ledger: Path, selected: pd.DataFrame, universe: list[str], prices: pd.DataFrame,
-          feature_names: list[str], etf_prices: pd.DataFrame | None = None) -> dict:
+          feature_names: list[str], etf_prices: pd.DataFrame | None = None, spec: TrackerSpec = V5) -> dict:
     """Append any due SIGNAL, ENTRY and PERIOD events. Idempotent."""
     valid, detail = validate(ledger)
     if not valid:
         raise RuntimeError(f"ledger validation failed: {detail}")
-    if etf_prices is not None:
-        overlap = sorted(set(etf_prices["ticker"]).intersection(prices["ticker"]))
-        if overlap:
-            raise ValueError(f"benchmark ETF tickers collide with stock prices: {', '.join(overlap)}")
-        prices = pd.concat([prices, etf_prices.loc[etf_prices["ticker"].isin(ETF_BENCHMARKS)]], ignore_index=True)
-    prices = prepare_prices(prices)
     notes: list[str] = []
+    if etf_prices is not None:
+        etf_prices = etf_prices.loc[etf_prices["ticker"].isin(ETF_BENCHMARKS)]
+        overlap = sorted(set(etf_prices["ticker"]).intersection(prices["ticker"]))
+        scored = sorted(set(overlap).intersection(universe))
+        if scored:
+            # A scored stock sharing an ETF ticker would make the benchmark ambiguous.
+            raise ValueError(f"benchmark ETF tickers collide with scored stocks: {', '.join(scored)}")
+        if overlap:
+            # The stock price file also carries these ETFs; use the validated ETF file for benchmarks.
+            prices = prices.loc[~prices["ticker"].isin(overlap)]
+            notes.append(f"stock prices also contain {', '.join(overlap)}; benchmark returns use the ETF file")
+        prices = pd.concat([prices, etf_prices], ignore_index=True)
+    prices = prepare_prices(prices)
 
-    payload = signal_payload(selected, universe, feature_names)
+    payload = signal_payload(selected, universe, feature_names, spec)
     signal_date = pd.Timestamp(payload["signal_date"])
     signals = _events(ledger, "SIGNAL")
-    if signal_date <= FROZEN_AT:
+    if signal_date <= spec.frozen_at:
         notes.append(f"latest completed-month signal {payload['signal_date']} is not after the "
-                     f"{FROZEN_AT.date()} freeze; nothing recorded")
+                     f"{spec.frozen_at.date()} freeze; nothing recorded")
     elif payload["signal_date"] not in signals:
         latest = max(signals) if signals else None
         if latest is not None and payload["signal_date"] < latest:
@@ -311,7 +342,7 @@ def track(ledger: Path, selected: pd.DataFrame, universe: list[str], prices: pd.
     entries = _events(ledger, "ENTRY")
     for date in sorted(signals):
         if date not in entries:
-            entry = entry_payload(signals[date], prices)
+            entry = entry_payload(signals[date], prices, spec)
             if entry is None:
                 notes.append(f"ENTRY for {date} waits for the next session's opening prices")
             else:
@@ -328,7 +359,7 @@ def track(ledger: Path, selected: pd.DataFrame, universe: list[str], prices: pd.
             continue
         previous = signals[ordered[i - 1]] if i > 0 else None
         period = period_payload(signals[date], entries[date], signals[ordered[i + 1]], prices,
-                                previous, observation=len(periods) + 1)
+                                previous, observation=len(periods) + 1, spec=spec)
         if period is None:
             notes.append(f"PERIOD for {date} waits for the session after {ordered[i + 1]}")
             continue
@@ -336,14 +367,16 @@ def track(ledger: Path, selected: pd.DataFrame, universe: list[str], prices: pd.
         periods = _events(ledger, "PERIOD")
 
     valid, tail = validate(ledger)
-    return {**summarize(ledger), "ledger_valid": valid, "ledger_tail_hash": tail, "notes": notes}
+    return {**summarize(ledger, spec), "ledger_valid": valid, "ledger_tail_hash": tail, "notes": notes}
 
 
-def write_reports(ledger: Path, summary: dict, report_dir: Path = REPORT_DIR,
-                  signal_dir: Path = SIGNAL_DIR) -> None:
+def write_reports(ledger: Path, summary: dict, report_dir: Path | None = None,
+                  signal_dir: Path | None = None, spec: TrackerSpec = V5) -> None:
+    report_dir = spec.report_dir if report_dir is None else report_dir
+    signal_dir = spec.signal_dir if signal_dir is None else signal_dir
     signal_dir.mkdir(parents=True, exist_ok=True)
     for date, signal in _events(ledger, "SIGNAL").items():
-        snapshot = signal_dir / f"v5_{date}.json"
+        snapshot = signal_dir / f"{spec.key}_{date}.json"
         if not snapshot.exists():
             snapshot.write_text(json.dumps({"signal_date": date, "holdings": signal["holdings"]}, indent=2),
                                 encoding="utf-8")
@@ -353,7 +386,7 @@ def write_reports(ledger: Path, summary: dict, report_dir: Path = REPORT_DIR,
     report_dir.mkdir(parents=True, exist_ok=True)
     rows = [{"observation": p["observation"], "signal_date": p["signal_date"],
              "next_signal_date": p["next_signal_date"], "calendar_months": p["calendar_months"],
-             "v5_net_return": p["v5"]["net_return"], "v5_turnover": p["v5"]["turnover"],
+             f"{spec.key}_net_return": p[spec.key]["net_return"], f"{spec.key}_turnover": p[spec.key]["turnover"],
              "point_in_time_equal_weight_return": p["point_in_time_equal_weight"]["return"],
              "spy_return": p["spy"]["return"], "excess_vs_spy": p["excess_vs_spy"],
              "excess_vs_rsp": p.get("excess_vs_rsp"),

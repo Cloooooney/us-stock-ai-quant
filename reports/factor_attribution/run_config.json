@@ -21,6 +21,10 @@
     "v4_fundamental_ridge": [
       "ai_v4_fundamentals",
       "net_return"
+    ],
+    "v6_factor_blend": [
+      "ai_v6_factor",
+      "net_return"
     ]
   },
   "alignment": "calendar month of execution_date",

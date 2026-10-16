@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 
 from data_pipeline.build_sec_annual_features import main as rebuild_fundamentals
+from data_pipeline.build_sec_quarterly_features import main as rebuild_quarterly_fundamentals
 from data_pipeline.incremental_sec_update import update as update_sec
 from data_pipeline.rebuild_monthly_dataset import rebuild as rebuild_monthly
 from data_pipeline.update_benchmark_etfs import update as update_etfs
 from data_pipeline.update_market_data import update as update_market
 from paper_trading.run_v5_forward import main as run_forward
+from paper_trading.run_v6_forward import main as run_v6_forward
 
 
 def main():
@@ -19,9 +21,11 @@ def main():
                 "effect": "PERIOD events written this run record ETF benchmarks as unavailable"}
     sec = update_sec()
     rebuild_fundamentals()
+    rebuild_quarterly_fundamentals()
     monthly = rebuild_monthly()
     print(json.dumps({"market": market, "benchmark_etfs": etfs, "sec": sec, "monthly": monthly}, indent=2))
-    run_forward()
+    run_forward()  # V5 first: a V6 failure can never block the V5 record
+    run_v6_forward()
 
 
 if __name__ == "__main__": main()

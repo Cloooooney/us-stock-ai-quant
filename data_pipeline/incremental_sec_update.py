@@ -14,13 +14,38 @@ from data_pipeline.download_sec_submissions import build_sic_snapshot
 from data_pipeline.sec_fundamentals import ROOT
 
 ANNUAL_FORMS = {"10-K", "10-K/A", "20-F", "20-F/A", "40-F", "40-F/A"}
+QUARTERLY_FORMS = {"10-Q", "10-Q/A"}
+# V6 uses quarterly facts, so a new 10-Q must refresh Company Facts as well.
+REFRESH_FORMS = ANNUAL_FORMS | QUARTERLY_FORMS
+
+
+def recent_filing_date(payload: dict, forms: set[str] = REFRESH_FORMS) -> pd.Timestamp | None:
+    recent = payload.get("filings", {}).get("recent", {})
+    dates = [pd.Timestamp(d) for form, d in zip(recent.get("form", []), recent.get("filingDate", []))
+             if form in forms]
+    return max(dates) if dates else None
 
 
 def recent_annual_date(payload: dict) -> pd.Timestamp | None:
-    recent = payload.get("filings", {}).get("recent", {})
-    dates = [pd.Timestamp(d) for form, d in zip(recent.get("form", []), recent.get("filingDate", []))
-             if form in ANNUAL_FORMS]
-    return max(dates) if dates else None
+    return recent_filing_date(payload, ANNUAL_FORMS)
+
+
+def known_filing_dates(root: Path = ROOT) -> dict[int, pd.Timestamp]:
+    """Latest filing date already parsed per CIK, across annual and quarterly features."""
+    frames = [pd.read_parquet(root / "data/sec/annual_fundamentals.parquet", columns=["cik", "filed"])]
+    quarterly = root / "data/sec/quarterly_fundamentals.parquet"
+    if quarterly.exists():
+        frames.append(pd.read_parquet(quarterly, columns=["cik", "filed"]))
+    known = pd.concat(frames, ignore_index=True)
+    known["filed"] = pd.to_datetime(known["filed"])
+    return known.groupby("cik")["filed"].max().to_dict()
+
+
+def needs_refresh(payload: dict, cached: bool, known: pd.Timestamp | None) -> bool:
+    latest = recent_filing_date(payload)
+    if not cached:
+        return True
+    return latest is not None and latest > (known if known is not None else pd.Timestamp.min)
 
 
 def update() -> dict:
@@ -30,8 +55,7 @@ def update() -> dict:
     latest = current_members.loc[current_members["date"] <= latest_price, "date"].max()
     current_tickers = set(current_members.loc[current_members["date"].eq(latest), "ticker"])
     companies = companies.loc[companies["ticker"].isin(current_tickers)].drop_duplicates("cik")
-    annual = pd.read_parquet(ROOT / "data/sec/annual_fundamentals.parquet", columns=["cik", "filed"])
-    known = annual.groupby("cik")["filed"].max().to_dict()
+    known = known_filing_dates()
     sub_dir = ROOT / "data/sec/submissions"; fact_dir = ROOT / "data/sec/companyfacts"
     sub_dir.mkdir(parents=True, exist_ok=True); fact_dir.mkdir(parents=True, exist_ok=True)
     session = requests.Session(); session.headers.update({"User-Agent": os.environ.get("SEC_USER_AGENT", DEFAULT_UA),
@@ -42,9 +66,8 @@ def update() -> dict:
             sub = session.get(f"https://data.sec.gov/submissions/CIK{row.cik:010d}.json", timeout=45)
             sub.raise_for_status(); payload = sub.json()
             (sub_dir / f"CIK{row.cik:010d}.json").write_text(json.dumps(payload), encoding="utf-8")
-            latest_annual = recent_annual_date(payload)
             cached_file = fact_dir / f"CIK{row.cik:010d}.json"
-            if not cached_file.exists() or (latest_annual is not None and latest_annual > known.get(row.cik, pd.Timestamp.min)):
+            if needs_refresh(payload, cached_file.exists(), known.get(row.cik)):
                 facts = session.get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{row.cik:010d}.json", timeout=90)
                 facts.raise_for_status(); fact_payload = facts.json()
                 cached_file.write_text(json.dumps(fact_payload), encoding="utf-8")
