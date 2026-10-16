@@ -119,3 +119,24 @@ def test_benchmark_etf_validation_rejects_bad_data():
     bad = good.copy(); bad.iloc[0, bad.columns.get_loc("close")] = 0.0
     with pytest.raises(ValueError, match="non-positive"):
         validate(bad, None, ["RSP", "QUAL"])
+
+
+def test_active_regression_uses_the_models_own_universe():
+    factors = synthetic_factors(n=110, start="2017-01")
+    rng = np.random.default_rng(4)
+    shared = factors["rf"] + factors["mkt_rf"] + rng.normal(0, 0.01, len(factors))
+    own = shared + 0.5 * factors["smb"]
+    returns = pd.DataFrame({"model": own + 0.2 * factors["hml"], "model::equal_weight": own,
+                            "point_in_time_equal_weight": shared, "spy": factors["rf"] + factors["mkt_rf"]},
+                           index=factors.index)
+    returns = returns.loc[returns.index >= pd.Period("2018-01", "M")]
+    table = run_attribution(returns, factors)
+    active = table.query("strategy == 'model' and regression == 'active_vs_equal_weight' and split == 'full_oos'")
+    assert active["beta_smb"].iloc[0] == pytest.approx(0.0, abs=0.05)
+    assert active["beta_hml"].iloc[0] == pytest.approx(0.2, abs=0.05)
+    assert "model::equal_weight" not in set(table["strategy"])
+
+
+def test_repository_includes_v6_with_its_own_universe():
+    returns = load_strategy_returns()
+    assert {"v6_factor_blend", "v6_factor_blend::equal_weight"}.issubset(returns.columns)

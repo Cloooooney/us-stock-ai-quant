@@ -48,7 +48,9 @@ STRATEGIES = {
     "v2_cross_sectional": ("ai_v2_cross_sectional", "net_return"),
     "v3_risk_control": ("ai_v3_risk_control", "overlay_return"),
     "v4_fundamental_ridge": ("ai_v4_fundamentals", "net_return"),
+    "v6_factor_blend": ("ai_v6_factor", "net_return"),
 }
+OWN_EW = "::equal_weight"  # suffix for a strategy's own equal-weight universe
 BENCHMARK_SOURCE = "ai_v4_fundamentals"
 SPLITS = {"validation": ("2018-01-01", "2022-12-31"), "test": ("2023-01-01", "2099-12-31"),
           "full_oos": ("2018-01-01", "2099-12-31")}
@@ -162,7 +164,10 @@ def load_strategy_returns(reports: Path = ROOT / "reports") -> pd.DataFrame:
         if not path.exists():
             continue
         frame = pd.read_csv(path, parse_dates=["execution_date"])
-        columns[name] = frame.set_index(frame["execution_date"].dt.to_period("M"))[column]
+        frame = frame.set_index(frame["execution_date"].dt.to_period("M"))
+        columns[name] = frame[column]
+        if "equal_weight_return" in frame and folder != BENCHMARK_SOURCE:
+            columns[name + OWN_EW] = frame["equal_weight_return"]
     base = pd.read_csv(reports / BENCHMARK_SOURCE / "monthly_returns.csv", parse_dates=["execution_date"])
     base = base.set_index(base["execution_date"].dt.to_period("M"))
     columns["point_in_time_equal_weight"] = base["equal_weight_return"]
@@ -179,14 +184,16 @@ def run_attribution(returns: pd.DataFrame, factors: pd.DataFrame) -> pd.DataFram
     for split, (start, end) in SPLITS.items():
         window = returns.loc[(returns.index >= pd.Period(start[:7], "M")) &
                              (returns.index <= pd.Period(end[:7], "M"))]
-        for name in window.columns:
+        for name in [c for c in window.columns if not c.endswith(OWN_EW)]:
             series = window[name].dropna()
             if len(series) < 24:
                 continue
             rows.append({"strategy": name, "split": split, "regression": "absolute",
                          **attribute(series, factors, factors["rf"])})
             if name not in {"point_in_time_equal_weight", "spy"}:
-                active = (window[name] - window["point_in_time_equal_weight"]).dropna()
+                # Each model is measured against the equal-weight version of its own universe.
+                benchmark = window.get(name + OWN_EW, window["point_in_time_equal_weight"])
+                active = (window[name] - benchmark).dropna()
                 rows.append({"strategy": name, "split": split, "regression": "active_vs_equal_weight",
                              **attribute(active, factors, None)})
     return pd.DataFrame(rows)
@@ -214,7 +221,7 @@ def compare_to_etfs(returns: pd.DataFrame, etf_returns: pd.DataFrame) -> pd.Data
     rows = []
     for split, (start, end) in SPLITS.items():
         lo, hi = pd.Period(start[:7], "M"), pd.Period(end[:7], "M")
-        for name in returns.columns:
+        for name in [c for c in returns.columns if not c.endswith(OWN_EW)]:
             for etf in etf_returns.columns:
                 excess = (returns[name] - etf_returns[etf]).dropna()
                 excess = excess.loc[(excess.index >= lo) & (excess.index <= hi)]

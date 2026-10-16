@@ -1,0 +1,32 @@
+{
+  "model": "v6_equal_weight_momentum_quality_value",
+  "frozen_on": "2026-10-15",
+  "first_signal": "2018-01-01",
+  "last_signal": "2026-08-31",
+  "top_n": 20,
+  "primary_cost_bps": 10,
+  "stress_cost_bps": 25,
+  "fundamental_max_age_days": 460,
+  "removed_best_months": [
+    "2020-03-31",
+    "2022-09-30",
+    "2024-10-31"
+  ],
+  "selection_policy": "No retrospective variant selection; blend was frozen before results.",
+  "fundamental_columns": [
+    "ttm_revenue",
+    "ttm_net_income",
+    "ttm_operating_cash_flow",
+    "ttm_capex",
+    "revenue_growth",
+    "net_margin",
+    "cash_quality",
+    "roa",
+    "liabilities_to_assets",
+    "capex_to_revenue",
+    "free_cash_flow_margin",
+    "accruals_to_assets",
+    "weighted_average_shares",
+    "shares_outstanding"
+  ]
+}

@@ -12,6 +12,7 @@ The project progressed through several deliberately constrained model versions:
 - **V1-V3:** point-in-time S&P 500 walk-forward ML experiments. These versions failed the acceptance criteria and were rejected.
 - **V4:** a Ridge model using SEC fundamentals aligned to actual filing availability. It produced positive historical returns but did not beat SPY in the final test period.
 - **V5:** V4 scores with SIC-based sector concentration limits. Its rules were frozen on October 5, 2026, and it is waiting for genuinely forward data.
+- **V6 research branch:** a frozen equal-weight blend of quarterly point-in-time momentum, quality, and value ranks. It beats point-in-time equal weight over the full historical period but narrowly trails SPY and therefore is not promoted.
 
 V5 holds 20 equal-weight stocks, limits concentration to four stocks per two-digit SIC and six per SIC division, expires annual fundamentals after 550 days, and assumes 10 bps transaction costs. Orders remain disabled.
 
@@ -26,6 +27,8 @@ The V4 final test covered 2023-2026:
 | SPY | 20.77% | 12.04% | 1.73 | -7.80% |
 
 The model made money in this historical test but underperformed simple benchmarks. That is not sufficient evidence for live deployment.
+
+V6 covers 104 monthly holding periods from 2018 through August 2026. After 10 bps costs it returned 13.71% annualized, versus 10.32% for point-in-time equal weight and 13.97% for SPY. At 25 bps it returned 13.07%. Its Sharpe ratio was 0.70 versus 0.82 for SPY, and removing its best three months reduced annual return to 9.30%. See [docs/V6_RESULTS.md](docs/V6_RESULTS.md) for the full audit and rejection decision.
 
 ## Research Safeguards
 
@@ -72,6 +75,12 @@ The pipeline validates schema, duplicate keys, positive prices, date monotonicit
 # Fundamental Ridge model
 .\.venv\Scripts\python.exe -m backtests.run_fundamental_ridge
 
+# Build quarterly point-in-time SEC snapshots for V6
+.\.venv\Scripts\python.exe -m data_pipeline.build_sec_quarterly_features
+
+# Run the frozen V6 research backtest
+.\.venv\Scripts\python.exe -m backtests.run_v6_factor
+
 # Build the latest V5 preview
 .\.venv\Scripts\python.exe -m backtests.build_v5_forward_preview
 
@@ -111,6 +120,7 @@ tests/            timing, data, model, ledger, and simulation tests
 ## Important Limitations
 
 - Current SIC classifications are a present-day snapshot and are not backfilled into V5 history.
+- V6 has no historical point-in-time sector classification and can hold multiple share classes of the same issuer.
 - Historical delisted-company and ticker-to-CIK coverage remains imperfect.
 - Cross-industry accounting ratios are not fully comparable.
 - Free data sources can be revised or become unavailable.
