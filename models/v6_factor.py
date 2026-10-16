@@ -211,3 +211,35 @@ def run_v6_variant(
     ).reset_index(drop=True)
     returns, holdings = portfolio_returns(scored, cfg)
     return scored, returns, holdings
+
+
+def select_v6_holdings(scored: pd.DataFrame, signal_date: pd.Timestamp, top_n: int = 20) -> pd.DataFrame:
+    """Top ``top_n`` names by the frozen blend on one date, with the same
+    ordering and tie-break as the backtest (score descending, then ticker)."""
+    current = scored.loc[pd.to_datetime(scored["date"]).eq(signal_date)].copy()
+    current["prediction"] = current[SLEEVE_COLUMNS["blend"]]
+    current = current.sort_values(["prediction", "ticker"], ascending=[False, True], kind="mergesort")
+    selected = current.head(top_n).copy()
+    if len(selected) != top_n:
+        raise ValueError(f"V6 selection produced {len(selected)} holdings instead of {top_n}")
+    selected["portfolio_rank"] = range(1, top_n + 1)
+    return selected
+
+
+def build_v6_signal(root, top_n: int = 20) -> tuple[pd.DataFrame, list[str], pd.DataFrame]:
+    """Frozen V6 holdings for the latest completed month-end, the scored
+    point-in-time universe, and prices. No parameters are fitted."""
+    from pathlib import Path
+
+    from models.walk_forward import build_latest_signal_snapshot, load_source
+
+    root = Path(root)
+    prices, intervals, _ = load_source(root)
+    latest = build_latest_signal_snapshot(prices, intervals)
+    fundamentals = pd.read_parquet(root / "data/sec/quarterly_fundamentals.parquet")
+    valued = attach_valuation_features(merge_quarterly_fundamentals(latest, fundamentals), prices)
+    scored = score_factors(valued)
+    signal_date = pd.Timestamp(latest["date"].max())
+    selected = select_v6_holdings(scored, signal_date, top_n)
+    universe = sorted(scored.loc[scored["date"].eq(signal_date), "ticker"].astype(str).unique())
+    return selected, universe, prices

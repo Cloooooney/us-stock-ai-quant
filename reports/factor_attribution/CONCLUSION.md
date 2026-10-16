@@ -41,3 +41,15 @@ The in-house equal-weight universe tracks a real, investable equal-weight fund t
 - 103 months is short: an information ratio of 0.5 needs roughly 16 years to reach t = 2, so absence of evidence is not proof of zero skill. It is, however, no basis for allocating money.
 - Monthly alignment uses the calendar month of each execution date; the holding window runs open to open and is offset from calendar months by about one day.
 - The 2023-2026 period has already been inspected repeatedly, so even these results are not a clean test.
+
+## Addendum: V6 (October 16, 2026)
+
+| Measure | V6 factor blend |
+| --- | --- |
+| Absolute alpha | +0.96% a year (t +0.32); market beta 1.00, value beta +0.34 (significant) |
+| Active alpha vs its own equal-weight universe | +2.68% a year (t +0.85), R² 0.12 |
+| Excess vs RSP / QUAL / MTUM / VLUE / USMV | +3.49% / +1.65% / +0.92% / +0.81% / +5.59% a year, all \|t\| < 2 |
+
+V6 is the first version whose point estimate beats every benchmark ETF, and unlike V4 its active return is **not** explained by known factors (R² 0.12, no significant active beta). Neither result is statistically significant, and V6's own robustness check shows the edge disappears without its three best months.
+
+Decision: V6 is the strongest candidate so far, so it gets a genuine forward record. Its rules were frozen on October 15, 2026, before the first eligible October 30 signal, so it can be tracked forward under the same conditions as V5 without any retuning.

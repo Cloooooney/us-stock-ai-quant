@@ -51,6 +51,16 @@ If a month-end run is missed, the earlier portfolio is treated as held until the
 
 Each formal signal is also saved under `paper_trading/signals/`, and period results are summarized in `reports/v5_forward/period_returns.csv` and `reports/v5_forward/summary.json`. Preview files are not formal performance observations.
 
+## V6 Forward Record
+
+V6 (momentum, quality, and value blend; frozen October 15, 2026) is tracked with the same rules in its own ledger, `paper_trading/v6_ledger.jsonl`, with summaries in `reports/v6_forward/`. The monthly cycle runs V5 first and V6 second, so a V6 failure cannot block the V5 record. V6 holdings record the SEC accession and form behind each score. To run it alone:
+
+```powershell
+.\.venv\Scripts\python.exe -m paper_trading.run_v6_forward
+```
+
+The monthly cycle now also refreshes SEC Company Facts after new 10-Q filings, not only annual filings, and rebuilds `data/sec/quarterly_fundamentals.parquet`, because V6 scores depend on quarterly data.
+
 ## Pre-Freeze Execution Rehearsal
 
 Before the first eligible signal, the complete local execution path can be rehearsed offline:

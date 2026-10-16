@@ -101,7 +101,7 @@ The pipeline validates schema, duplicate keys, positive prices, date monotonicit
 
 The September 30, 2026 V5 preview predates the frozen model and is only an execution-pipeline rehearsal. It must not be counted as forward performance.
 
-The first eligible signal must come from a completed month-end after October 5, 2026. V5 is tracked against point-in-time equal weight, SPY, RSP, and the QUAL, VLUE, MTUM, and USMV factor ETFs under the same timing. Six complete monthly observations are only an operational check. Any live allocation requires at least 24 complete monthly observations, positive net excess return over RSP and the closest factor ETF, and residual alpha after factor attribution. A short profitable streak will not trigger parameter changes or live deployment. See [docs/ROADMAP.md](docs/ROADMAP.md).
+The first eligible signal must come from a completed month-end after October 5, 2026. V5 and V6 are tracked forward in separate ledgers. V6 rules were frozen on October 15, 2026, so its first eligible signal is also the October 30, 2026 month-end. Both are tracked against point-in-time equal weight, SPY, RSP, and the QUAL, VLUE, MTUM, and USMV factor ETFs under the same timing. Six complete monthly observations are only an operational check. Any live allocation requires at least 24 complete monthly observations, positive net excess return over RSP and the closest factor ETF, and residual alpha after factor attribution. A short profitable streak will not trigger parameter changes or live deployment. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 See [paper_trading/README.md](paper_trading/README.md) for operating details and [reports/v5_sector_guard/MODEL_CARD.md](reports/v5_sector_guard/MODEL_CARD.md) for the frozen model rules.
 
