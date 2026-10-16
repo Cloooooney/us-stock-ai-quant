@@ -38,16 +38,20 @@ A strategy that only reproduces a factor ETF's exposure should be replaced by th
 - [x] Factor attribution of historical strategy returns on Fama-French five factors plus momentum with Newey-West t-statistics (`research/factor_attribution.py`).
 - [x] Download RSP, QUAL, VLUE, MTUM, and USMV and record them as forward benchmarks in every `PERIOD` event.
 - [x] Run the attribution locally and record conclusions in `reports/factor_attribution/CONCLUSION.md`: no model has detectable alpha; V4 is market beta plus a mild profitability tilt and trailed QUAL.
+- [ ] Run factor attribution including V6 and record the result.
 - [ ] Record the first formal V5 signal after the October 30, 2026 close.
 
 ## Phase 1: Data Quality (November 2026-January 2027)
 
 Priority order follows the attribution result: add information the factor ETFs do not already use.
 
-1. Quarterly 10-Q facts with trailing-twelve-month aggregation and the same filing-date delay.
-2. Changes in fundamentals (quarter-over-quarter and year-over-year improvement) rather than only levels.
-3. Valuation features: earnings yield, free-cash-flow yield, book-to-market, using SEC shares outstanding times price.
-4. Survivorship: universe-level bias against RSP measured at about 0.2% a year after fees, so a paid point-in-time source with delisted securities (for example Sharadar or Norgate) waits until a candidate signal exists.
+1. [x] Quarterly 10-Q facts with trailing-twelve-month aggregation and the same filing-date delay (V6, `data_pipeline/build_sec_quarterly_features.py`).
+2. [ ] Changes in fundamentals (quarter-over-quarter and year-over-year improvement) rather than only levels.
+3. [x] Valuation features: sales, earnings, and free-cash-flow yield with split-restated SEC share counts (V6). Book-to-market is not yet included.
+4. [ ] Issuer-level de-duplication of multiple share classes (V6 held duplicate issuers in 51 months).
+
+V6 (frozen October 15, 2026; see `docs/V6_RESULTS.md`) blends momentum, quality, and value. It beat its equal-weight universe by about 3.4% a year over 2018-2026 but trailed SPY, and the edge disappears after removing its three best months. Factor attribution of V6 is the next check: if its return is explained by momentum, quality, and value betas, an MTUM/QUAL/VLUE mix is the cheaper implementation.
+5. Survivorship: universe-level bias against RSP measured at about 0.2% a year after fees, so a paid point-in-time source with delisted securities (for example Sharadar or Norgate) waits until a candidate signal exists.
 - Point-in-time SIC: test reconstructing historical industry codes from SEC filing headers and report coverage before using them.
 - Reduce single-source risk: the price and membership data come from one third-party GitHub release; add a cross-check against a second source.
 
