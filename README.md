@@ -30,6 +30,10 @@ The model made money in this historical test but underperformed simple benchmark
 
 V6 covers 104 monthly holding periods from 2018 through August 2026. After 10 bps costs it returned 13.71% annualized, versus 10.32% for point-in-time equal weight and 13.97% for SPY. At 25 bps it returned 13.07%. Its Sharpe ratio was 0.70 versus 0.82 for SPY, and removing its best three months reduced annual return to 9.30%. See [docs/V6_RESULTS.md](docs/V6_RESULTS.md) for the full audit and rejection decision.
 
+## Analysis App
+
+A bilingual (Chinese and English) local app for analysing a portfolio: historical return and risk against SPY and RSP, concentration, factor attribution, and plain-language findings. It also shows the V5 and V6 forward record and the research history. On Windows, double-click `start_app.bat`; elsewhere run `python -m streamlit run app/main.py`. See [docs/PRODUCT_PLAN.md](docs/PRODUCT_PLAN.md).
+
 ## Research Safeguards
 
 - Historical point-in-time S&P 500 membership.

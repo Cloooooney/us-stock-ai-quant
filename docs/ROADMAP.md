@@ -76,4 +76,6 @@ V6 (frozen October 15, 2026; see `docs/V6_RESULTS.md`) blends momentum, quality,
 - Small live allocation only after the gate above, capped at a small fraction of investable assets.
 - Hard stop: a drawdown of more than 10% relative to RSP returns the strategy to research.
 
+The product direction built on this research (an analysis app for others, automated trading for the owner only) is in [docs/PRODUCT_PLAN.md](PRODUCT_PLAN.md).
+
 Every new model version starts its own forward record. Results already seen cannot be reused to select it.
