@@ -2,3 +2,5 @@
 
 *.png binary
 *.parquet binary
+
+*.bat text eol=crlf
