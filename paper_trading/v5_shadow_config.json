@@ -9,5 +9,15 @@
   "max_per_sic_division": 6,
   "fundamental_max_age_days": 550,
   "transaction_cost_bps": 10,
-  "minimum_forward_months_before_review": 6
+  "minimum_forward_months_before_review": 6,
+  "minimum_forward_months_before_capital": 24,
+  "forward_benchmarks": [
+    "point_in_time_equal_weight",
+    "SPY",
+    "RSP",
+    "QUAL",
+    "VLUE",
+    "MTUM",
+    "USMV"
+  ]
 }

@@ -29,12 +29,15 @@ ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "paper_trading/v5_ledger.jsonl"
 SIGNAL_DIR = ROOT / "paper_trading/signals"
 REPORT_DIR = ROOT / "reports/v5_forward"
+ETF_PRICES = ROOT / "data/pit/benchmark_etfs.parquet"
 FROZEN_AT = pd.Timestamp("2026-10-05")
 MODEL = "fundamental_ridge_v5_sector_guard"
 TOP_N = 20
 COST_BPS = 10
-MIN_REVIEW_MONTHS = 6
+MIN_REVIEW_MONTHS = 6  # operational check only; not evidence of skill
+MIN_CAPITAL_MONTHS = 24  # minimum forward record before any live allocation (docs/ROADMAP.md)
 BENCHMARK = "SPY"
+ETF_BENCHMARKS = ["RSP", "QUAL", "VLUE", "MTUM", "USMV"]  # supplementary; never block a PERIOD
 EXIT_WINDOW_DAYS = 7  # same exit search window as models.walk_forward.build_monthly_dataset
 
 
@@ -146,6 +149,24 @@ def entry_payload(signal: dict, prices: pd.DataFrame) -> dict | None:
             "cost_bps": COST_BPS}
 
 
+def etf_period_returns(prices: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp,
+                       entry_session: pd.Timestamp, exit_session: pd.Timestamp) -> dict:
+    """Open-to-open ETF returns over exactly the V5 holding period. An ETF whose
+    bars do not cover both sessions is recorded as unavailable."""
+    measured = holding_period_returns(prices, ETF_BENCHMARKS, start, end).set_index("ticker")
+    out = {}
+    for ticker in ETF_BENCHMARKS:
+        r = measured.loc[ticker]
+        if pd.isna(r["return"]):
+            out[ticker] = {"return": None, "reason": "no prices for the period"}
+        elif (pd.Timestamp(r["entry_date"]) != entry_session or r["exit_rule"] != "next_session_open"
+              or pd.Timestamp(r["exit_date"]) != exit_session):
+            out[ticker] = {"return": None, "reason": "prices do not cover the entry and exit sessions"}
+        else:
+            out[ticker] = {"return": _round(r["return"])}
+    return out
+
+
 def period_payload(signal: dict, entry: dict, next_signal: dict, prices: pd.DataFrame,
                    previous_signal: dict | None, observation: int) -> dict | None:
     """One holding-period observation from ``signal`` to ``next_signal``, or
@@ -189,6 +210,8 @@ def period_payload(signal: dict, entry: dict, next_signal: dict, prices: pd.Data
         raise ValueError(f"{BENCHMARK} return is unavailable for {signal['signal_date']}")
     spy_return = float(spy["return"])
 
+    etfs = etf_period_returns(prices, start, end, execution_date, exit_session)
+
     months = (end.to_period("M") - start.to_period("M")).n
     return {"event_type": "PERIOD", "model": MODEL, "observation": observation,
             "signal_date": signal["signal_date"], "next_signal_date": next_signal["signal_date"],
@@ -199,7 +222,9 @@ def period_payload(signal: dict, entry: dict, next_signal: dict, prices: pd.Data
             "point_in_time_equal_weight": {"return": _round(equal_weight), "members": int(len(universe)),
                                            "members_scored": len(signal["universe"])},
             "spy": {"return": _round(spy_return)},
+            "etf_benchmarks": etfs,
             "excess_vs_spy": _round(net - spy_return),
+            "excess_vs_rsp": None if etfs["RSP"]["return"] is None else _round(net - etfs["RSP"]["return"]),
             "excess_vs_equal_weight": _round(net - equal_weight),
             "holdings": rows}
 
@@ -223,24 +248,39 @@ def summarize(path: Path) -> dict:
             total *= 1 + value
         return total - 1
 
+    etf_cumulative = {}
+    for ticker in ETF_BENCHMARKS:
+        values = [p.get("etf_benchmarks", {}).get(ticker, {}).get("return") for p in periods]
+        known = [v for v in values if v is not None]
+        etf_cumulative[ticker] = {"return": growth(known) if known else None,
+                                  "periods_available": len(known)}
+
     return {"signals": len(signals), "entries": len(entries), "periods": len(periods),
             "complete_monthly_observations": len(monthly),
             "multi_month_periods": [p["signal_date"] for p in periods if p["calendar_months"] != 1],
             "review_gate_months": MIN_REVIEW_MONTHS,
             "review_gate_reached": len(monthly) >= MIN_REVIEW_MONTHS,
+            "capital_gate_months": MIN_CAPITAL_MONTHS,
+            "capital_gate_months_reached": len(monthly) >= MIN_CAPITAL_MONTHS,
             "pending_entries": sorted(set(signals).difference(entries)),
             "cumulative": {"v5_net": growth([p["v5"]["net_return"] for p in periods]),
                            "point_in_time_equal_weight": growth(
                                [p["point_in_time_equal_weight"]["return"] for p in periods]),
-                           "spy": growth([p["spy"]["return"] for p in periods])}}
+                           "spy": growth([p["spy"]["return"] for p in periods]),
+                           "etf_benchmarks": etf_cumulative}}
 
 
 def track(ledger: Path, selected: pd.DataFrame, universe: list[str], prices: pd.DataFrame,
-          feature_names: list[str]) -> dict:
+          feature_names: list[str], etf_prices: pd.DataFrame | None = None) -> dict:
     """Append any due SIGNAL, ENTRY and PERIOD events. Idempotent."""
     valid, detail = validate(ledger)
     if not valid:
         raise RuntimeError(f"ledger validation failed: {detail}")
+    if etf_prices is not None:
+        overlap = sorted(set(etf_prices["ticker"]).intersection(prices["ticker"]))
+        if overlap:
+            raise ValueError(f"benchmark ETF tickers collide with stock prices: {', '.join(overlap)}")
+        prices = pd.concat([prices, etf_prices.loc[etf_prices["ticker"].isin(ETF_BENCHMARKS)]], ignore_index=True)
     prices = prepare_prices(prices)
     notes: list[str] = []
 
@@ -315,7 +355,10 @@ def write_reports(ledger: Path, summary: dict, report_dir: Path = REPORT_DIR,
              "next_signal_date": p["next_signal_date"], "calendar_months": p["calendar_months"],
              "v5_net_return": p["v5"]["net_return"], "v5_turnover": p["v5"]["turnover"],
              "point_in_time_equal_weight_return": p["point_in_time_equal_weight"]["return"],
-             "spy_return": p["spy"]["return"], "excess_vs_spy": p["excess_vs_spy"]} for p in periods]
+             "spy_return": p["spy"]["return"], "excess_vs_spy": p["excess_vs_spy"],
+             "excess_vs_rsp": p.get("excess_vs_rsp"),
+             **{f"{t.lower()}_return": p.get("etf_benchmarks", {}).get(t, {}).get("return")
+                for t in ETF_BENCHMARKS}} for p in periods]
     pd.DataFrame(rows).to_csv(report_dir / "period_returns.csv", index=False)
     (report_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
@@ -325,7 +368,10 @@ def main() -> None:
     from models.v5 import build_v5_signal
 
     selected, universe, prices = build_v5_signal(ROOT)
-    summary = track(LEDGER, selected, universe, prices, FUNDAMENTALS)
+    etf_prices = pd.read_parquet(ETF_PRICES) if ETF_PRICES.exists() else None
+    summary = track(LEDGER, selected, universe, prices, FUNDAMENTALS, etf_prices)
+    if etf_prices is None:
+        summary["notes"].append(f"{ETF_PRICES} not found; ETF benchmarks are recorded as unavailable")
     write_reports(LEDGER, summary)
     print(json.dumps({"ledger": str(LEDGER), **summary}, indent=2))
 

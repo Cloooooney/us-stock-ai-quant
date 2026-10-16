@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 from paper_trading.ledger import read_events, validate
-from paper_trading.run_v5_forward import COST_BPS, TOP_N, track, write_reports
+from paper_trading.run_v5_forward import COST_BPS, ETF_BENCHMARKS, TOP_N, track, write_reports
 
 FEATURES = ["roa"]
 HOLDINGS = [f"H{i:02d}" for i in range(TOP_N)]
@@ -11,7 +11,9 @@ UNIVERSE = sorted(HOLDINGS + OTHERS)
 
 
 def growth(ticker: str) -> float:
-    return 0.001 * (int(ticker[1:]) % 7 - 3) if ticker != "SPY" else 0.0005
+    if ticker[1:].isdigit():
+        return 0.001 * (int(ticker[1:]) % 7 - 3)
+    return 0.0005 if ticker == "SPY" else 0.0001 * (len(ticker) + ord(ticker[0]) % 5)
 
 
 def make_prices(end: str, tickers=None, skip=()) -> pd.DataFrame:
@@ -165,3 +167,39 @@ def test_benchmark_cannot_be_a_holding(tmp_path):
     with pytest.raises(ValueError, match="benchmark"):
         track(tmp_path / "ledger.jsonl", selection("2026-10-30", HOLDINGS[:-1] + ["SPY"]),
               UNIVERSE + ["SPY"], make_prices("2026-11-03"), FEATURES)
+
+
+def test_etf_benchmarks_are_measured_over_the_same_period(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    prices = make_prices("2026-12-02")
+    etfs = make_prices("2026-12-02", tickers=ETF_BENCHMARKS)
+    track(ledger, selection("2026-10-30"), UNIVERSE, prices, FEATURES, etfs)
+    result = track(ledger, selection("2026-11-30"), UNIVERSE, prices, FEATURES, etfs)
+    [period] = events(ledger, "PERIOD")
+    for ticker in ETF_BENCHMARKS:
+        expected = price_on(ticker, "2026-12-01") / price_on(ticker, "2026-11-02") - 1
+        assert period["etf_benchmarks"][ticker]["return"] == pytest.approx(expected, abs=1e-9)
+    assert period["excess_vs_rsp"] == pytest.approx(
+        period["v5"]["net_return"] - period["etf_benchmarks"]["RSP"]["return"], abs=1e-9)
+    assert result["cumulative"]["etf_benchmarks"]["RSP"]["periods_available"] == 1
+    assert result["capital_gate_months"] == 24 and result["capital_gate_months_reached"] is False
+
+
+def test_stale_or_missing_etf_data_never_blocks_a_period(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    prices = make_prices("2026-12-02")
+    stale = make_prices("2026-11-20", tickers=ETF_BENCHMARKS)
+    track(ledger, selection("2026-10-30"), UNIVERSE, prices, FEATURES, stale)
+    track(ledger, selection("2026-11-30"), UNIVERSE, prices, FEATURES, stale)
+    [period] = events(ledger, "PERIOD")
+    assert period["etf_benchmarks"]["RSP"] == {
+        "return": None, "reason": "prices do not cover the entry and exit sessions"}
+    assert period["excess_vs_rsp"] is None
+    assert period["spy"]["return"] is not None
+
+
+def test_etf_tickers_cannot_collide_with_stock_prices(tmp_path):
+    prices = make_prices("2026-11-03")
+    etfs = make_prices("2026-11-03", tickers=["SPY", "RSP"])
+    with pytest.raises(ValueError, match="collide"):
+        track(tmp_path / "ledger.jsonl", selection("2026-10-30"), UNIVERSE, prices, FEATURES, etfs)

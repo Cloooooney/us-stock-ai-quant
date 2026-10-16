@@ -80,13 +80,19 @@ The pipeline validates schema, duplicate keys, positive prices, date monotonicit
 
 # Run the formal frozen forward tracker
 .\.venv\Scripts\python.exe -m paper_trading.run_v5_forward
+
+# Download benchmark ETFs (RSP, QUAL, VLUE, MTUM, USMV)
+.\.venv\Scripts\python.exe -m data_pipeline.update_benchmark_etfs
+
+# Fama-French five-factor plus momentum attribution of historical returns
+.\.venv\Scripts\python.exe -m research.factor_attribution
 ```
 
 ## Forward Validation
 
 The September 30, 2026 V5 preview predates the frozen model and is only an execution-pipeline rehearsal. It must not be counted as forward performance.
 
-The first eligible signal must come from a completed month-end after October 5, 2026. V5 requires at least six complete monthly observations while tracking the model, point-in-time equal weight, and SPY under the same assumptions. A short profitable streak will not trigger parameter changes or live deployment.
+The first eligible signal must come from a completed month-end after October 5, 2026. V5 is tracked against point-in-time equal weight, SPY, RSP, and the QUAL, VLUE, MTUM, and USMV factor ETFs under the same timing. Six complete monthly observations are only an operational check. Any live allocation requires at least 24 complete monthly observations, positive net excess return over RSP and the closest factor ETF, and residual alpha after factor attribution. A short profitable streak will not trigger parameter changes or live deployment. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 See [paper_trading/README.md](paper_trading/README.md) for operating details and [reports/v5_sector_guard/MODEL_CARD.md](reports/v5_sector_guard/MODEL_CARD.md) for the frozen model rules.
 
