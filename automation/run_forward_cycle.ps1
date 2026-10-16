@@ -56,7 +56,8 @@ function Write-Status([string]$Result, [string]$Step) {
 }
 
 function Publish([string]$Result) {
-    $outputs = @('paper_trading/v5_ledger.jsonl', 'paper_trading/v6_ledger.jsonl', 'paper_trading/signals',
+    $outputs = @('paper_trading/v5_ledger.jsonl', 'paper_trading/v6_ledger.jsonl',
+                 'paper_trading/alpaca_paper_ledger.jsonl', 'paper_trading/signals',
                  'reports/v5_forward', 'reports/v6_forward') | Where-Object { Test-Path -LiteralPath (Join-Path $Repo $_) }
     if ($outputs) { Invoke-Native 'git' (@('add', '--') + $outputs) }
     $changed = [bool](& git diff --cached --name-only)

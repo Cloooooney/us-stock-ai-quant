@@ -30,7 +30,7 @@ Runs locally first (`start_app.bat`), bilingual (Chinese and English).
 ## Automated Trading for the Owner
 
 1. Open an Alpaca paper-trading account and store keys in `.env` (ignored by Git).
-2. Connect the forward tracker to the paper account: submit the month's target holdings at the next open, record broker fills next to the simulated fills, and reconcile them.
+2. Connect the forward tracker to the paper account: submit the month's target holdings at the next open, record broker fills next to the simulated fills, and reconcile them. Implemented in `broker/` (see `broker/README.md`); it runs inside the monthly cycle once keys exist.
 3. Run at least three months of paper trading to measure slippage, rejected orders, and outages.
 4. Live orders only after the release gate, sized as a small fraction of investable assets, with a kill switch on a 10% drawdown relative to RSP.
 

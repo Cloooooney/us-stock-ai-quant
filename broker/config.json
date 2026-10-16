@@ -1,0 +1,7 @@
+{
+  "model": "v6",
+  "cash_buffer": 0.02,
+  "rebalance_band": 0.10,
+  "max_order_fraction": 0.10,
+  "live_trading": false
+}
