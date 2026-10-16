@@ -6,9 +6,7 @@ __pycache__/
 data/
 reports/**/*.parquet
 reports/paper_rehearsal/
-paper_trading/v5_ledger.jsonl
-paper_trading/v6_ledger.jsonl
-paper_trading/signals/
+automation/logs/
 .env
 .env.*
 *.key

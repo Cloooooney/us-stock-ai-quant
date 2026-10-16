@@ -38,7 +38,7 @@ def append(path: Path, payload: dict, timestamp: str | None = None) -> dict:
              "previous_hash": previous}
     event["event_hash"] = hashlib.sha256((previous + canonical(event)).encode("utf-8")).hexdigest()
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
+    with path.open("a", encoding="utf-8", newline="\n") as handle:  # LF on every OS, matching .gitattributes
         handle.write(json.dumps(event, sort_keys=True, ensure_ascii=False) + "\n")
         handle.flush(); os.fsync(handle.fileno())
     return event
