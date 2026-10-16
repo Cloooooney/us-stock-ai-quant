@@ -13,6 +13,7 @@ The project progressed through several deliberately constrained model versions:
 - **V4:** a Ridge model using SEC fundamentals aligned to actual filing availability. It produced positive historical returns but did not beat SPY in the final test period.
 - **V5:** V4 scores with SIC-based sector concentration limits. Its rules were frozen on October 5, 2026, and it is waiting for genuinely forward data.
 - **V6 research branch:** a frozen equal-weight blend of quarterly point-in-time momentum, quality, and value ranks. It beats point-in-time equal weight over the full historical period but narrowly trails SPY and therefore is not promoted.
+- **V7 (pre-registered October 16, 2026):** V6 with one position per issuer and an improvement sleeve that is adopted only if it passes development-period tests. See [the pre-registration](docs/superpowers/specs/2026-10-16-v7-factor-model-design.md); the backtest runs automatically through `automation/research_jobs.json`.
 
 V5 holds 20 equal-weight stocks, limits concentration to four stocks per two-digit SIC and six per SIC division, expires annual fundamentals after 550 days, and assumes 10 bps transaction costs. Orders remain disabled.
 
