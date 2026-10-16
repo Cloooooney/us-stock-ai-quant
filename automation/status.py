@@ -19,6 +19,7 @@ from paper_trading.ledger import read_events, validate
 ROOT = Path(__file__).resolve().parents[1]
 STATUS = ROOT / "automation/status.json"
 LEDGERS = {"v5": ROOT / "paper_trading/v5_ledger.jsonl", "v6": ROOT / "paper_trading/v6_ledger.jsonl"}
+BROKER_LEDGER = ROOT / "paper_trading/alpaca_paper_ledger.jsonl"
 LOG_TAIL_LINES = 40
 
 
@@ -39,6 +40,19 @@ def ledger_status(path: Path) -> dict:
             "latest_period": periods[-1]["signal_date"] if periods else None}
 
 
+def broker_status(path: Path) -> dict:
+    if not path.exists():
+        return {"exists": False}
+    valid, detail = validate(path)
+    events = read_events(path) if valid else []
+    orders = [e for e in events if e.get("event_type") == "ORDERS"]
+    fills = {e["signal_date"] for e in events if e.get("event_type") == "FILLS"}
+    return {"exists": True, "valid": valid, "detail": None if valid else detail,
+            "latest_orders": orders[-1]["signal_date"] if orders else None,
+            "order_errors": len(orders[-1]["errors"]) if orders else 0,
+            "unreconciled": sorted({e["signal_date"] for e in orders}.difference(fills))}
+
+
 def log_tail(path: Path | None, lines: int = LOG_TAIL_LINES) -> list[str]:
     if path is None or not path.exists():
         return []
@@ -49,7 +63,8 @@ def build(result: str, step: str, log: Path | None, now: datetime | None = None,
           ledgers: dict[str, Path] = LEDGERS) -> dict:
     now = now or datetime.now(timezone.utc)
     status = {"last_attempt_utc": now.isoformat(), "result": result, "step": step,
-              "ledgers": {key: ledger_status(path) for key, path in ledgers.items()}}
+              "ledgers": {key: ledger_status(path) for key, path in ledgers.items()},
+              "alpaca_paper": broker_status(BROKER_LEDGER)}
     if result != "success":
         status["log_tail"] = log_tail(log)
     return status
