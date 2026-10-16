@@ -1,0 +1,24 @@
+{
+  "preregistration": "docs/superpowers/specs/2026-10-16-v7-factor-model-design.md",
+  "development_period": [
+    "2018-01-01",
+    "2022-12-31"
+  ],
+  "rank_ic": {
+    "months": 60,
+    "mean": -0.018857440840465856,
+    "newey_west_t": -1.7559975798873462,
+    "positive_month_share": 0.45,
+    "passes": false
+  },
+  "top_quintile_alpha": {
+    "months": 60,
+    "alpha_annual": -0.024969293332530666,
+    "newey_west_t": -1.3507701370148715,
+    "r2": 0.218046734726696,
+    "passes": false
+  },
+  "threshold_t": 1.65,
+  "improvement_sleeve_adopted": false,
+  "score": "v6_score"
+}

@@ -1,0 +1,13 @@
+{
+  "model": "v7_unique_issuer",
+  "frozen_on": "2026-10-16",
+  "score": "v6_score",
+  "top_n": 20,
+  "primary_cost_bps": 10,
+  "stress_cost_bps": 25,
+  "fundamental_max_age_days": 460,
+  "one_position_per_issuer": true,
+  "preregistration": "docs/superpowers/specs/2026-10-16-v7-factor-model-design.md",
+  "first_signal": "2018-01-31",
+  "last_signal": "2026-08-31"
+}

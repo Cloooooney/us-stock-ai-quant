@@ -1,0 +1,19 @@
+{
+  "last_attempt_utc": "2026-10-16T22:35:28.467223+00:00",
+  "result": "success",
+  "step": "run",
+  "ledgers": {
+    "v5": {
+      "exists": false
+    },
+    "v6": {
+      "exists": false
+    },
+    "v7": {
+      "exists": false
+    }
+  },
+  "alpaca_paper": {
+    "exists": false
+  }
+}
