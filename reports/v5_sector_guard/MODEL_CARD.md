@@ -23,4 +23,4 @@ The first eligible forward signal must come from a completed month-end after the
 
 ## Release Gate
 
-Collect at least six complete monthly observations while tracking V5, dynamic equal weight, and SPY. A high return over a small number of months will not justify early rule changes or live deployment.
+Track V5 against dynamic equal weight, SPY, RSP, and the QUAL, VLUE, MTUM, and USMV factor ETFs. Six complete monthly observations are an operational check only; reaching t = 2 on excess return takes roughly 48 / IR² months. Any live allocation requires at least 24 complete monthly observations, positive net excess return over RSP and the closest factor ETF, and residual alpha after factor attribution. A high return over a small number of months will not justify early rule changes or live deployment.

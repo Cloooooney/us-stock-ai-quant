@@ -5,7 +5,8 @@
 - V5 freeze date: October 5, 2026.
 - First eligible signal: the first completed month-end after the freeze date.
 - Broker orders: disabled.
-- Minimum review window: six complete monthly observations.
+- Operational check: six complete monthly observations. This is not evidence of skill.
+- Minimum record before any live allocation: 24 complete monthly observations plus the conditions in [docs/ROADMAP.md](../docs/ROADMAP.md).
 
 ## Month-End Run
 
@@ -40,11 +41,13 @@ The ledger holds three event types:
 | --- | --- | --- |
 | `SIGNAL` | First run after a completed month-end that follows the freeze | The 20 frozen V5 holdings and the full scored point-in-time universe. Written once; later runs never recompute it. |
 | `ENTRY` | The benchmark calendar has a session after the signal | Next-session opening fills for the ledgered `SIGNAL` holdings. A holding with no bar that day is listed in `unfilled_held_as_cash` and earns 0% for the period. |
-| `PERIOD` | The session after the next `SIGNAL` is available | Net V5 return, point-in-time equal-weight return, and SPY return for the holding period, with per-holding detail. |
+| `PERIOD` | The session after the next `SIGNAL` is available | Net V5 return, point-in-time equal-weight return, SPY return, and RSP, QUAL, VLUE, MTUM, and USMV returns for the holding period, with per-holding detail. |
 
 `PERIOD` uses the historical backtest conventions so forward and historical numbers are comparable: adjusted open after the signal to adjusted open after the next signal, names that stop trading exit at their last adjusted close, V5 pays 10 bps times name turnover (100% for the first period), and the equal-weight universe and SPY carry no costs. All prices in one `PERIOD` come from the same data snapshot, so dividends paid during the period are included.
 
-If a month-end run is missed, the earlier portfolio is treated as held until the next recorded signal. That observation is flagged with `calendar_months` greater than 1 and does not count toward the six-month review gate.
+ETF benchmarks come from `data/pit/benchmark_etfs.parquet`, refreshed by the monthly cycle. They are supplementary: if that download fails or the file does not cover both sessions, the ETF is recorded with `return: null` and a reason, and the `PERIOD` is still written.
+
+If a month-end run is missed, the earlier portfolio is treated as held until the next recorded signal. That observation is flagged with `calendar_months` greater than 1 and does not count toward the monthly observation totals.
 
 Each formal signal is also saved under `paper_trading/signals/`, and period results are summarized in `reports/v5_forward/period_returns.csv` and `reports/v5_forward/summary.json`. Preview files are not formal performance observations.
 
