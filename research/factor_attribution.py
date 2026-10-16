@@ -250,7 +250,8 @@ def describe(table: pd.DataFrame) -> str:
               "| Strategy | Regression | Alpha / yr | Alpha t | R² | Mkt | SMB | HML | RMW | CMA | Mom |",
               "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
     for row in shown.itertuples():
-        betas = " | ".join(f"{getattr(row, f'beta_{f}'):+.2f}" for f in FACTORS)
+        betas = " | ".join(f"{getattr(row, f'beta_{f}'):+.2f}" + ("*" if abs(getattr(row, f't_{f}')) >= 2 else "")
+                           for f in FACTORS)
         lines.append(f"| {row.strategy} | {row.regression} | {row.alpha_annual:+.2%} | {row.alpha_t:+.2f} "
                      f"| {row.r2:.2f} | {betas} |")
     significant = shown.loc[shown["alpha_t"].abs() >= 2]
@@ -262,7 +263,7 @@ def describe(table: pd.DataFrame) -> str:
         for row in significant.itertuples():
             lines.append(f"- {row.strategy} ({row.regression}): alpha {row.alpha_annual:+.2%} a year, "
                          f"t = {row.alpha_t:+.2f}.")
-    lines += ["", "Factor betas with |t| ≥ 2 show which known exposures explain the returns. If a strategy's "
+    lines += ["", "`*` marks a factor beta with |t| ≥ 2. Those are the known exposures that explain the returns. If a strategy's "
               "return is mostly explained by factors that a low-cost ETF already provides, the ETF is the "
               "cheaper implementation.", ""]
     return "\n".join(lines)

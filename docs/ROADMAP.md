@@ -37,20 +37,24 @@ A strategy that only reproduces a factor ETF's exposure should be replaced by th
 - [x] Fix forward ledger accounting before the first eligible signal (PR #1).
 - [x] Factor attribution of historical strategy returns on Fama-French five factors plus momentum with Newey-West t-statistics (`research/factor_attribution.py`).
 - [x] Download RSP, QUAL, VLUE, MTUM, and USMV and record them as forward benchmarks in every `PERIOD` event.
-- [ ] Run the attribution locally and record conclusions in `reports/factor_attribution/`.
+- [x] Run the attribution locally and record conclusions in `reports/factor_attribution/CONCLUSION.md`: no model has detectable alpha; V4 is market beta plus a mild profitability tilt and trailed QUAL.
 - [ ] Record the first formal V5 signal after the October 30, 2026 close.
 
 ## Phase 1: Data Quality (November 2026-January 2027)
 
-- Quarterly 10-Q facts with trailing-twelve-month aggregation and the same filing-date delay.
-- Valuation features: earnings yield, free-cash-flow yield, book-to-market, using SEC shares outstanding times price.
-- Survivorship: evaluate a paid point-in-time source with delisted securities (for example Sharadar or Norgate) against the current free source; quantify the bias rather than assuming it.
+Priority order follows the attribution result: add information the factor ETFs do not already use.
+
+1. Quarterly 10-Q facts with trailing-twelve-month aggregation and the same filing-date delay.
+2. Changes in fundamentals (quarter-over-quarter and year-over-year improvement) rather than only levels.
+3. Valuation features: earnings yield, free-cash-flow yield, book-to-market, using SEC shares outstanding times price.
+4. Survivorship: universe-level bias against RSP measured at about 0.2% a year after fees, so a paid point-in-time source with delisted securities (for example Sharadar or Norgate) waits until a candidate signal exists.
 - Point-in-time SIC: test reconstructing historical industry codes from SEC filing headers and report coverage before using them.
 - Reduce single-source risk: the price and membership data come from one third-party GitHub release; add a cross-check against a second source.
 
 ## Phase 2: Research Method (in parallel with Phase 1)
 
 - Factor-by-factor evaluation first: monthly Rank IC with Newey-West t-statistics, raw and sector-neutral, plus decay over one to six months.
+- Acceptance criterion: a candidate's long-short or top-quintile return must show a positive intercept after Fama-French five factors plus momentum in the validation period. Return already explained by known factors is available more cheaply in ETFs.
 - Out-of-universe replication: a signal found on the S&P 500 must work, with no retuning, on the S&P 400 and S&P 600. This is the only remaining clean historical evidence.
 - Keep a trial registry of every configuration tried and report deflated Sharpe ratios.
 
