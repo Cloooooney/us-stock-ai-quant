@@ -198,8 +198,24 @@ def test_stale_or_missing_etf_data_never_blocks_a_period(tmp_path):
     assert period["spy"]["return"] is not None
 
 
-def test_etf_tickers_cannot_collide_with_stock_prices(tmp_path):
-    prices = make_prices("2026-11-03")
-    etfs = make_prices("2026-11-03", tickers=["SPY", "RSP"])
-    with pytest.raises(ValueError, match="collide"):
-        track(tmp_path / "ledger.jsonl", selection("2026-10-30"), UNIVERSE, prices, FEATURES, etfs)
+def test_etf_in_stock_prices_uses_the_etf_file(tmp_path):
+    # The upstream stock price file can carry RSP itself; it is not a scored stock.
+    ledger = tmp_path / "ledger.jsonl"
+    stock_rsp = make_prices("2026-12-02", tickers=["RSP"]).assign(open=1.0, close=1.0, adj_close=1.0)
+    prices = pd.concat([make_prices("2026-12-02"), stock_rsp], ignore_index=True)
+    etfs = make_prices("2026-12-02", tickers=["SPY", *ETF_BENCHMARKS])  # SPY in the ETF file is ignored
+    track(ledger, selection("2026-10-30"), UNIVERSE, prices, FEATURES, etfs)
+    result = track(ledger, selection("2026-11-30"), UNIVERSE, prices, FEATURES, etfs)
+    [period] = events(ledger, "PERIOD")
+    expected = price_on("RSP", "2026-12-01") / price_on("RSP", "2026-11-02") - 1
+    assert period["etf_benchmarks"]["RSP"]["return"] == pytest.approx(expected, abs=1e-9)
+    assert period["spy"]["return"] == pytest.approx(
+        price_on("SPY", "2026-12-01") / price_on("SPY", "2026-11-02") - 1, abs=1e-9)
+    assert any("ETF file" in note for note in result["notes"])
+
+
+def test_etf_ticker_that_is_a_scored_stock_is_rejected(tmp_path):
+    prices = pd.concat([make_prices("2026-11-03"), make_prices("2026-11-03", tickers=["RSP"])])
+    etfs = make_prices("2026-11-03", tickers=["RSP"])
+    with pytest.raises(ValueError, match="scored stocks"):
+        track(tmp_path / "ledger.jsonl", selection("2026-10-30"), UNIVERSE + ["RSP"], prices, FEATURES, etfs)

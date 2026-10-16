@@ -300,13 +300,20 @@ def track(ledger: Path, selected: pd.DataFrame, universe: list[str], prices: pd.
     valid, detail = validate(ledger)
     if not valid:
         raise RuntimeError(f"ledger validation failed: {detail}")
-    if etf_prices is not None:
-        overlap = sorted(set(etf_prices["ticker"]).intersection(prices["ticker"]))
-        if overlap:
-            raise ValueError(f"benchmark ETF tickers collide with stock prices: {', '.join(overlap)}")
-        prices = pd.concat([prices, etf_prices.loc[etf_prices["ticker"].isin(ETF_BENCHMARKS)]], ignore_index=True)
-    prices = prepare_prices(prices)
     notes: list[str] = []
+    if etf_prices is not None:
+        etf_prices = etf_prices.loc[etf_prices["ticker"].isin(ETF_BENCHMARKS)]
+        overlap = sorted(set(etf_prices["ticker"]).intersection(prices["ticker"]))
+        scored = sorted(set(overlap).intersection(universe))
+        if scored:
+            # A scored stock sharing an ETF ticker would make the benchmark ambiguous.
+            raise ValueError(f"benchmark ETF tickers collide with scored stocks: {', '.join(scored)}")
+        if overlap:
+            # The stock price file also carries these ETFs; use the validated ETF file for benchmarks.
+            prices = prices.loc[~prices["ticker"].isin(overlap)]
+            notes.append(f"stock prices also contain {', '.join(overlap)}; benchmark returns use the ETF file")
+        prices = pd.concat([prices, etf_prices], ignore_index=True)
+    prices = prepare_prices(prices)
 
     payload = signal_payload(selected, universe, feature_names, spec)
     signal_date = pd.Timestamp(payload["signal_date"])
