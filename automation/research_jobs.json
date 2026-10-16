@@ -1,0 +1,8 @@
+[
+  {
+    "name": "v7_backtest",
+    "module": "backtests.run_v7_factor",
+    "done_when": "reports/ai_v7_factor/decision.json",
+    "publish": ["reports/ai_v7_factor"]
+  }
+]

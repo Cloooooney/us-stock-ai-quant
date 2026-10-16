@@ -121,8 +121,9 @@ TEXT = {
               "October 30, 2026 month-end signal and updates automatically each month. Six months is only "
               "an operational check; at least 24 are needed before any small live allocation.",
     },
-    "no_ledger": {"zh": "{model} 还没有正式记录。第一笔信号预计在 2026 年 11 月 2 日收盘后自动写入。",
-                  "en": "{model} has no formal record yet. The first signal is expected after the November 2, 2026 close."},
+    "no_ledger": {"zh": "{model} 还没有正式记录。第一笔信号会在它冻结之后的第一个月末自动写入（V5、V6 是 2026 年 10 月 30 日）。",
+                  "en": "{model} has no formal record yet. Its first signal is recorded automatically at the first "
+                        "month-end after it is frozen (October 30, 2026 for V5 and V6)."},
     "ledger_invalid": {"zh": "{model} 的 ledger 校验失败：{detail}", "en": "{model} ledger failed validation: {detail}"},
     "latest_holdings": {"zh": "最新持仓（信号日 {date}）", "en": "Latest holdings (signal {date})"},
     "periods": {"zh": "月度结果", "en": "Monthly results"},

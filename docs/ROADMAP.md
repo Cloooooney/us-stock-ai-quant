@@ -48,9 +48,9 @@ A strategy that only reproduces a factor ETF's exposure should be replaced by th
 Priority order follows the attribution result: add information the factor ETFs do not already use.
 
 1. [x] Quarterly 10-Q facts with trailing-twelve-month aggregation and the same filing-date delay (V6, `data_pipeline/build_sec_quarterly_features.py`).
-2. [ ] Changes in fundamentals (quarter-over-quarter and year-over-year improvement) rather than only levels.
+2. [ ] Changes in fundamentals (year-over-year improvement) rather than only levels: pre-registered as the V7 improvement sleeve (`docs/superpowers/specs/2026-10-16-v7-factor-model-design.md`), adopted only if it passes the development-period tests.
 3. [x] Valuation features: sales, earnings, and free-cash-flow yield with split-restated SEC share counts (V6). Book-to-market is not yet included.
-4. [ ] Issuer-level de-duplication of multiple share classes (V6 held duplicate issuers in 51 months).
+4. [x] Issuer-level de-duplication of multiple share classes (V6 held duplicate issuers in 51 months): part of V7.
 
 V6 (frozen October 15, 2026; see `docs/V6_RESULTS.md`) blends momentum, quality, and value. It beat its equal-weight universe by about 3.4% a year over 2018-2026 but trailed SPY, and the edge disappears after removing its three best months. Factor attribution of V6 is the next check: if its return is explained by momentum, quality, and value betas, an MTUM/QUAL/VLUE mix is the cheaper implementation.
 5. Survivorship: universe-level bias against RSP measured at about 0.2% a year after fees, so a paid point-in-time source with delisted securities (for example Sharadar or Norgate) waits until a candidate signal exists.

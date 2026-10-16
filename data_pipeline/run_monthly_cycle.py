@@ -26,6 +26,11 @@ def main():
     print(json.dumps({"market": market, "benchmark_etfs": etfs, "sec": sec, "monthly": monthly}, indent=2))
     run_forward()  # V5 first: a V6 failure can never block the V5 record
     run_v6_forward()
+    try:  # V7 is inactive until frozen; it can never block V5 or V6
+        from paper_trading.run_v7_forward import main as run_v7_forward
+        run_v7_forward()
+    except Exception as error:
+        print(json.dumps({"v7": {"status": "failed", "error": repr(error)}}, indent=2))
     try:  # paper orders are a mirror of the record; their failure never touches the ledgers above
         from broker.paper_rebalance import run as run_paper
         print(json.dumps({"alpaca_paper": run_paper()}, indent=2))

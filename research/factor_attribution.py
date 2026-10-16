@@ -49,6 +49,7 @@ STRATEGIES = {
     "v3_risk_control": ("ai_v3_risk_control", "overlay_return"),
     "v4_fundamental_ridge": ("ai_v4_fundamentals", "net_return"),
     "v6_factor_blend": ("ai_v6_factor", "net_return"),
+    "v7_factor": ("ai_v7_factor", "net_return"),  # skipped until the V7 backtest has run
 }
 OWN_EW = "::equal_weight"  # suffix for a strategy's own equal-weight universe
 BENCHMARK_SOURCE = "ai_v4_fundamentals"

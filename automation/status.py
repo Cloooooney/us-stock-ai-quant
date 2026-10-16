@@ -18,7 +18,8 @@ from paper_trading.ledger import read_events, validate
 
 ROOT = Path(__file__).resolve().parents[1]
 STATUS = ROOT / "automation/status.json"
-LEDGERS = {"v5": ROOT / "paper_trading/v5_ledger.jsonl", "v6": ROOT / "paper_trading/v6_ledger.jsonl"}
+LEDGERS = {"v5": ROOT / "paper_trading/v5_ledger.jsonl", "v6": ROOT / "paper_trading/v6_ledger.jsonl",
+           "v7": ROOT / "paper_trading/v7_ledger.jsonl"}
 BROKER_LEDGER = ROOT / "paper_trading/alpaca_paper_ledger.jsonl"
 LOG_TAIL_LINES = 40
 
