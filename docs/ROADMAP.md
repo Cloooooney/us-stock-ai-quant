@@ -40,6 +40,7 @@ A strategy that only reproduces a factor ETF's exposure should be replaced by th
 - [x] Run the attribution locally and record conclusions in `reports/factor_attribution/CONCLUSION.md`: no model has detectable alpha; V4 is market beta plus a mild profitability tilt and trailed QUAL.
 - [x] Run factor attribution including V6: no significant alpha, but V6's active return is not explained by known factors and beats every benchmark ETF in point estimate.
 - [x] Track V6 forward in its own ledger from the October 30, 2026 signal; refresh SEC data after 10-Q filings.
+- [x] Automate the monthly cycle on the local computer and a monthly remote review (`automation/README.md`).
 - [ ] Record the first formal V5 and V6 signals after the October 30, 2026 close.
 
 ## Phase 1: Data Quality (November 2026-January 2027)

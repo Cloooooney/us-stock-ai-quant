@@ -10,6 +10,8 @@
 
 ## Month-End Run
 
+This normally runs automatically; see [automation/README.md](../automation/README.md). To run it by hand:
+
 Run this on the first trading day after each month-end, once public market data have been updated:
 
 ```powershell
@@ -33,7 +35,7 @@ Running it after the close of the first trading day records the signal and its f
 
 ## Append-Only Ledger
 
-`v5_ledger.jsonl` is the formal append-only paper-trading ledger. Every event contains the previous event's hash. Editing, deleting, or reordering a line invalidates the chain. Do not modify this file with a text editor or spreadsheet program.
+`v5_ledger.jsonl` is the formal append-only paper-trading ledger. It is committed to Git, so every push adds an external timestamp. Every event contains the previous event's hash. Editing, deleting, or reordering a line invalidates the chain. Do not modify this file with a text editor or spreadsheet program.
 
 The ledger holds three event types:
 
