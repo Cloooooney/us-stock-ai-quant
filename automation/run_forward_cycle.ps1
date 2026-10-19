@@ -106,13 +106,25 @@ try {
         $step = 'monthly_cycle'
         Invoke-Native $Python @('-m', 'data_pipeline.run_monthly_cycle')
     }
+    # Each research job is independent: one failing job does not stop the others.
+    $failedJobs = @()
     foreach ($job in $jobs) {
-        $step = 'research:' + $job.name
         $extra += @($job.publish)
-        Invoke-Native $Python @('-m', $job.module)
+        try {
+            Invoke-Native $Python @('-m', $job.module)
+        } catch {
+            Write-Log ("Research job {0} failed: {1}" -f $job.name, $_)
+            $failedJobs += $job.name
+        }
     }
 
     $step = 'publish'
+    if ($failedJobs.Count -gt 0) {
+        Write-Status 'failed' ('research:' + ($failedJobs -join ','))
+        Publish 'failed' $extra
+        Write-Log 'Run finished with failed research jobs.'
+        exit 1
+    }
     Write-Status 'success' 'run'
     Publish 'success' $extra
     Write-Log 'Run finished.'
