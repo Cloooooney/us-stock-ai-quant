@@ -4,5 +4,17 @@
     "module": "backtests.run_v7_factor",
     "done_when": "reports/ai_v7_factor/decision.json",
     "publish": ["reports/ai_v7_factor"]
+  },
+  {
+    "name": "presample_v6",
+    "module": "research.presample_check",
+    "done_when": "reports/presample_v6/summary.json",
+    "publish": ["reports/presample_v6"]
+  },
+  {
+    "name": "factor_lab_batch1",
+    "module": "research.factor_lab",
+    "done_when": "reports/factor_lab/batch1_decision.json",
+    "publish": ["reports/factor_lab"]
   }
 ]
