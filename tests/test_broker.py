@@ -139,3 +139,45 @@ def test_check_mode_places_no_orders(tmp_path):
     client = FakeClient(positions={"S00": 5})
     result = run(tmp_path, client=client, check=True)
     assert result["positions"] == 1 and result["equity"] == 100_000.0 and not client.submitted
+
+
+def test_share_class_symbols_are_translated_for_alpaca():
+    from broker.alpaca import from_alpaca, to_alpaca
+
+    class Session:
+        def __init__(self):
+            self.headers, self.sent = {}, []
+
+        def request(self, method, url, timeout, **kwargs):
+            self.sent.append((method, url, kwargs))
+
+            class Response:
+                status_code = 200
+
+                @staticmethod
+                def json():
+                    return [{"symbol": "BRK.B", "qty": "3"}] if url.endswith("/v2/positions") else {"id": "x"}
+            return Response()
+
+    assert to_alpaca("BRK-B") == "BRK.B" and from_alpaca("BF.B") == "BF-B" and to_alpaca("AAPL") == "AAPL"
+    session = Session()
+    client = AlpacaPaper("k", "s", session=session)
+    client.submit_market_order("BRK-B", 2, "buy", "v6-2026-10-30-BRK-B-buy")
+    assert session.sent[-1][2]["json"]["symbol"] == "BRK.B"
+    assert client.positions() == {"BRK-B": 3.0}
+
+
+def test_preview_plans_without_sending_or_writing(tmp_path):
+    import pandas as pd
+
+    workspace(tmp_path)
+    client = FakeClient()
+    selected = pd.DataFrame({"ticker": TARGETS, "portfolio_rank": range(1, 21), "date": pd.Timestamp("2026-09-30")})
+    from broker.paper_rebalance import preview
+
+    result = preview(tmp_path, client=client, selection_builder=lambda root, model: selected,
+                     prices_lookup=lambda symbols: {s: 50.0 for s in symbols})
+    assert result["status"] == "preview_only_no_orders_sent" and result["signal_date"] == "2026-09-30"
+    assert len(result["planned_orders"]) == 20 and not client.submitted
+    assert result["estimated_buy_value"] <= 100_000 * 0.98
+    assert not (tmp_path / "paper_trading").exists()

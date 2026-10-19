@@ -15,7 +15,8 @@ Each order's client ID is derived from model, signal date, symbol, and side, so
 a rerun can never submit the same order twice. Only the paper endpoint exists;
 live trading is not implemented.
 
-    python -m broker.paper_rebalance --check   # connection test, places no orders
+    python -m broker.paper_rebalance --check     # connection test, places no orders
+    python -m broker.paper_rebalance --preview   # orders it would send for the latest month-end, places none
     python -m broker.paper_rebalance
 """
 from __future__ import annotations
@@ -186,11 +187,62 @@ def run(root: Path = ROOT, client=None, check: bool = False, today: date | None 
             "errors": errors}
 
 
+def latest_model_selection(root: Path, model: str):
+    """Holdings the frozen model would pick for the latest completed month-end."""
+    if model == "v6":
+        from models.v6_factor import build_v6_signal
+        selected, _, _ = build_v6_signal(root)
+    elif model == "v7":
+        from models.v7_factor import build_v7_signal
+        frozen = json.loads((root / "reports/ai_v7_factor/frozen_config.json").read_text(encoding="utf-8"))
+        selected, _, _ = build_v7_signal(root, frozen["score"])
+    else:
+        from models.v5 import build_v5_signal
+        selected, _, _ = build_v5_signal(root)
+    return selected
+
+
+def preview(root: Path = ROOT, client=None, today: date | None = None,
+            selection_builder: Callable[[Path, str], object] | None = None,
+            prices_lookup: Callable[[list[str]], dict[str, float]] | None = None) -> dict:
+    """Plan the orders for the latest completed month-end without sending any
+    order or writing any ledger. A rehearsal, not a forward record."""
+    today = today or date.today()
+    config = load_config(root / "broker/config.json")
+    if client is None:
+        credentials = load_credentials(root)
+        if credentials is None:
+            return {"status": "not_configured", "detail": "no Alpaca paper keys in .env"}
+        client = AlpacaPaper(*credentials)
+    account = client.account()
+    selected = (selection_builder or latest_model_selection)(root, config["model"])
+    targets = [str(t) for t in selected.sort_values("portfolio_rank")["ticker"]]
+    positions = client.positions()
+    lookup = prices_lookup or (lambda symbols: latest_closes(root, symbols, today))
+    prices = lookup(sorted(set(targets) | set(positions)))
+    equity = float(account["equity"])
+    plan = plan_orders(targets, equity, prices, positions, config["cash_buffer"],
+                       config["rebalance_band"], config["max_order_fraction"])
+    buys = sum(o["qty"] * o["reference_price"] for o in plan if o["side"] == "buy")
+    return {"status": "preview_only_no_orders_sent", "model": config["model"],
+            "signal_date": str(pd_date(selected["date"].max())), "equity": equity,
+            "planned_orders": plan, "estimated_buy_value": round(buys, 2),
+            "estimated_cash_left": round(equity - buys, 2)}
+
+
+def pd_date(value) -> date:
+    import pandas as pd
+
+    return pd.Timestamp(value).date()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Mirror the frozen model in an Alpaca paper account.")
-    parser.add_argument("--check", action="store_true", help="test the connection without placing orders")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--check", action="store_true", help="test the connection without placing orders")
+    mode.add_argument("--preview", action="store_true", help="show the orders for the latest month-end; send none")
     args = parser.parse_args()
-    print(json.dumps(run(check=args.check), indent=2))
+    print(json.dumps(preview() if args.preview else run(check=args.check), indent=2))
 
 
 if __name__ == "__main__":

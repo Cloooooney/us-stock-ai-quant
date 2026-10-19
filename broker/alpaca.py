@@ -21,6 +21,15 @@ class BrokerError(RuntimeError):
     pass
 
 
+def to_alpaca(ticker: str) -> str:
+    """Project tickers use a hyphen for share classes (BRK-B); Alpaca uses a dot (BRK.B)."""
+    return ticker.replace("-", ".")
+
+
+def from_alpaca(symbol: str) -> str:
+    return symbol.replace(".", "-")
+
+
 def load_credentials(root: Path) -> tuple[str, str] | None:
     """Keys from the environment, falling back to ``root/.env``; None if absent."""
     values = {KEY_ID: os.environ.get(KEY_ID, ""), SECRET: os.environ.get(SECRET, "")}
@@ -60,7 +69,7 @@ class AlpacaPaper:
         return self._request("GET", "/v2/clock")
 
     def positions(self) -> dict[str, float]:
-        return {p["symbol"]: float(p["qty"]) for p in self._request("GET", "/v2/positions") or []}
+        return {from_alpaca(p["symbol"]): float(p["qty"]) for p in self._request("GET", "/v2/positions") or []}
 
     def order_by_client_id(self, client_order_id: str) -> dict | None:
         return self._request("GET", "/v2/orders:by_client_order_id",
@@ -71,5 +80,5 @@ class AlpacaPaper:
         if side not in {"buy", "sell"} or qty <= 0:
             raise BrokerError(f"invalid order: {side} {qty} {symbol}")
         return self._request("POST", "/v2/orders", json={
-            "symbol": symbol, "qty": str(int(qty)), "side": side, "type": "market",
+            "symbol": to_alpaca(symbol), "qty": str(int(qty)), "side": side, "type": "market",
             "time_in_force": "day", "client_order_id": client_order_id})
