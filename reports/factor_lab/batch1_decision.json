@@ -1,0 +1,69 @@
+{
+  "preregistration": "docs/superpowers/specs/2026-10-19-presample-and-factor-lab.md",
+  "development_end": "2022-12-31",
+  "threshold_t": 2.2414027276049464,
+  "candidates": {
+    "net_issuance": {
+      "rank_ic_mean": 0.018363035504783184,
+      "rank_ic_t": 2.007909127859645,
+      "alpha_annual": 0.019437874036587963,
+      "alpha_t": 2.1762814410900906,
+      "net_spread_annual": 0.023453217994850017,
+      "months": 132,
+      "passes": false,
+      "diagnostic_rank_ic_mean": 0.013424918223606485,
+      "eligible_for_v8": false,
+      "long_short_annual": 0.026087201085224422,
+      "top_quintile_turnover": 0.07013529134620843,
+      "mean_corr_with_v6": 0.16255691214577525,
+      "coverage": 0.6819633121762068
+    },
+    "seasonality": {
+      "rank_ic_mean": -0.0178804514854147,
+      "rank_ic_t": -1.7605102956601697,
+      "alpha_annual": -0.04470428768302347,
+      "alpha_t": -3.8716831457815633,
+      "net_spread_annual": -0.04009785358696413,
+      "months": 132,
+      "passes": false,
+      "diagnostic_rank_ic_mean": 0.0009927481414383835,
+      "eligible_for_v8": false,
+      "long_short_annual": -0.04405184082335686,
+      "top_quintile_turnover": 0.7922870026726826,
+      "mean_corr_with_v6": 0.06103749133388571,
+      "coverage": 0.9874989733717333
+    },
+    "high_52w": {
+      "rank_ic_mean": -0.0013060699065300671,
+      "rank_ic_t": -0.0763899667978213,
+      "alpha_annual": -0.004696046507420762,
+      "alpha_t": -0.4663935219725734,
+      "net_spread_annual": -0.01512776725428323,
+      "months": 132,
+      "passes": false,
+      "diagnostic_rank_ic_mean": 0.013882973231241208,
+      "eligible_for_v8": false,
+      "long_short_annual": -0.00937180994454907,
+      "top_quintile_turnover": 0.5182481697325257,
+      "mean_corr_with_v6": 0.6134887538921645,
+      "coverage": 1.0
+    },
+    "short_reversal": {
+      "rank_ic_mean": 0.021473736367734253,
+      "rank_ic_t": 1.6665074984281625,
+      "alpha_annual": 0.00904228316748637,
+      "alpha_t": 0.5799545470891168,
+      "net_spread_annual": 0.012047425954537712,
+      "months": 132,
+      "passes": false,
+      "diagnostic_rank_ic_mean": -0.029333002876171386,
+      "eligible_for_v8": false,
+      "long_short_annual": 0.05003331654318095,
+      "top_quintile_turnover": 0.7751916522093569,
+      "mean_corr_with_v6": -0.2645508392476428,
+      "coverage": 1.0
+    }
+  },
+  "passed": [],
+  "eligible_for_v8": []
+}

@@ -1,0 +1,6 @@
+date,batch,candidate,threshold_t,passes
+2026-10-16,v7,improvement_sleeve,1.65,False
+2026-10-19,factor_lab_1,net_issuance,2.241,False
+2026-10-19,factor_lab_1,seasonality,2.241,False
+2026-10-19,factor_lab_1,high_52w,2.241,False
+2026-10-19,factor_lab_1,short_reversal,2.241,False
