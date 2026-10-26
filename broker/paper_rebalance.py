@@ -17,6 +17,7 @@ live trading is not implemented.
 
     python -m broker.paper_rebalance --check     # connection test, places no orders
     python -m broker.paper_rebalance --preview   # orders it would send for the latest month-end, places none
+    python -m broker.paper_rebalance --rehearse  # send them now as a labelled rehearsal before formal trading
     python -m broker.paper_rebalance
 """
 from __future__ import annotations
@@ -34,6 +35,7 @@ from paper_trading.ledger import append, read_events, validate
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "broker/config.json"
 BROKER_LEDGER = ROOT / "paper_trading/alpaca_paper_ledger.jsonl"
+REHEARSAL_LEDGER = ROOT / "paper_trading/alpaca_rehearsal_ledger.jsonl"
 MODEL_LEDGERS = {"v5": ROOT / "paper_trading/v5_ledger.jsonl", "v6": ROOT / "paper_trading/v6_ledger.jsonl"}
 FINAL = {"filled", "canceled", "expired", "rejected"}
 MAX_SIGNAL_AGE_DAYS = 10
@@ -202,32 +204,95 @@ def latest_model_selection(root: Path, model: str):
     return selected
 
 
-def preview(root: Path = ROOT, client=None, today: date | None = None,
-            selection_builder: Callable[[Path, str], object] | None = None,
-            prices_lookup: Callable[[list[str]], dict[str, float]] | None = None) -> dict:
-    """Plan the orders for the latest completed month-end without sending any
-    order or writing any ledger. A rehearsal, not a forward record."""
-    today = today or date.today()
-    config = load_config(root / "broker/config.json")
-    if client is None:
-        credentials = load_credentials(root)
-        if credentials is None:
-            return {"status": "not_configured", "detail": "no Alpaca paper keys in .env"}
-        client = AlpacaPaper(*credentials)
+def market_closes(symbols: list[str]) -> dict[str, float]:
+    """Latest daily close per symbol from Yahoo Finance, for manual previews and
+    rehearsals when the local point-in-time file has not been refreshed."""
+    import yfinance as yf
+
+    raw = yf.download(sorted(set(symbols)), period="10d", auto_adjust=False, actions=False,
+                      progress=False, group_by="ticker", threads=True)
+    out = {}
+    for symbol in symbols:
+        try:
+            closes = raw[symbol]["Close"].dropna()
+        except (KeyError, TypeError):
+            continue
+        if len(closes):
+            out[symbol] = float(closes.iloc[-1])
+    return out
+
+
+def _plan_latest(root: Path, client, config: dict, selection_builder, prices_lookup) -> dict:
     account = client.account()
     selected = (selection_builder or latest_model_selection)(root, config["model"])
     targets = [str(t) for t in selected.sort_values("portfolio_rank")["ticker"]]
     positions = client.positions()
-    lookup = prices_lookup or (lambda symbols: latest_closes(root, symbols, today))
-    prices = lookup(sorted(set(targets) | set(positions)))
+    prices = (prices_lookup or market_closes)(sorted(set(targets) | set(positions)))
     equity = float(account["equity"])
     plan = plan_orders(targets, equity, prices, positions, config["cash_buffer"],
                        config["rebalance_band"], config["max_order_fraction"])
     buys = sum(o["qty"] * o["reference_price"] for o in plan if o["side"] == "buy")
-    return {"status": "preview_only_no_orders_sent", "model": config["model"],
-            "signal_date": str(pd_date(selected["date"].max())), "equity": equity,
-            "planned_orders": plan, "estimated_buy_value": round(buys, 2),
+    return {"model": config["model"], "signal_date": str(pd_date(selected["date"].max())), "equity": equity,
+            "positions_before": positions, "planned_orders": plan, "estimated_buy_value": round(buys, 2),
             "estimated_cash_left": round(equity - buys, 2)}
+
+
+def _client(root: Path, client):
+    if client is not None:
+        return client
+    credentials = load_credentials(root)
+    return AlpacaPaper(*credentials) if credentials else None
+
+
+def preview(root: Path = ROOT, client=None, today: date | None = None,
+            selection_builder: Callable[[Path, str], object] | None = None,
+            prices_lookup: Callable[[list[str]], dict[str, float]] | None = None) -> dict:
+    """Plan the orders for the latest completed month-end without sending any
+    order or writing any ledger."""
+    config = load_config(root / "broker/config.json")
+    client = _client(root, client)
+    if client is None:
+        return {"status": "not_configured", "detail": "no Alpaca paper keys in .env"}
+    return {"status": "preview_only_no_orders_sent", **_plan_latest(root, client, config, selection_builder,
+                                                                     prices_lookup)}
+
+
+def rehearse(root: Path = ROOT, client=None, selection_builder=None, prices_lookup=None,
+             ledger: Path | None = None, broker_ledger: Path | None = None) -> dict:
+    """Send the latest month-end's orders to the paper account now, before
+    formal trading starts, so the order path can be seen working end to end.
+
+    The orders are labelled rehearsal and recorded in their own ledger. They are
+    not part of any forward record; the first formal rebalance trades from
+    whatever positions they leave. Refused once formal paper orders exist.
+    """
+    config = load_config(root / "broker/config.json")
+    ledger = ledger or root / REHEARSAL_LEDGER.relative_to(ROOT)
+    broker_ledger = broker_ledger or root / BROKER_LEDGER.relative_to(ROOT)
+    if any(e.get("event_type") == "ORDERS" for e in read_events(broker_ledger)):
+        raise BrokerError("formal paper trading has started; rehearsals are closed")
+    client = _client(root, client)
+    if client is None:
+        return {"status": "not_configured", "detail": "no Alpaca paper keys in .env"}
+    plan = _plan_latest(root, client, config, selection_builder, prices_lookup)
+    done = {e["signal_date"] for e in read_events(ledger) if e.get("event_type") == "REHEARSAL_ORDERS"}
+    if plan["signal_date"] in done:
+        return {"status": "already_rehearsed", "signal_date": plan["signal_date"]}
+    submitted, errors = [], []
+    for order in plan["planned_orders"]:
+        cid = f"rehearsal-{client_order_id(config['model'], plan['signal_date'], order['symbol'], order['side'])}"
+        try:
+            response = client.order_by_client_id(cid) or client.submit_market_order(
+                order["symbol"], order["qty"], order["side"], cid)
+            submitted.append({**order, "client_order_id": cid, "order_id": response.get("id"),
+                              "status": response.get("status")})
+        except BrokerError as error:
+            errors.append({**order, "client_order_id": cid, "error": str(error)})
+    append(ledger, {"event_type": "REHEARSAL_ORDERS", "rehearsal_only": True, "official_forward_result": False,
+                    "model": config["model"], "signal_date": plan["signal_date"], "account_equity": plan["equity"],
+                    "positions_before": plan["positions_before"], "submitted": submitted, "errors": errors})
+    return {"status": "rehearsal_orders_sent", "signal_date": plan["signal_date"], "orders": len(submitted),
+            "errors": errors, "estimated_buy_value": plan["estimated_buy_value"]}
 
 
 def pd_date(value) -> date:
@@ -241,8 +306,14 @@ def main() -> None:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--check", action="store_true", help="test the connection without placing orders")
     mode.add_argument("--preview", action="store_true", help="show the orders for the latest month-end; send none")
+    mode.add_argument("--rehearse", action="store_true",
+                      help="send the latest month-end's orders now as a labelled rehearsal (before formal trading)")
     args = parser.parse_args()
-    print(json.dumps(preview() if args.preview else run(check=args.check), indent=2))
+    if args.rehearse:
+        result = rehearse()
+    else:
+        result = preview() if args.preview else run(check=args.check)
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

@@ -57,8 +57,14 @@ function Write-Status([string]$Result, [string]$Step) {
 }
 
 function Publish([string]$Result, [string[]]$Extra = @()) {
+    # Every research job's outputs are included, so results produced by a manual run are published too.
+    $jobFile = Join-Path $Repo 'automation\research_jobs.json'
+    if (Test-Path -LiteralPath $jobFile) {
+        $Extra += @((Get-Content -LiteralPath $jobFile -Raw -Encoding UTF8 | ConvertFrom-Json) | ForEach-Object { $_.publish })
+    }
     $outputs = @('paper_trading/v5_ledger.jsonl', 'paper_trading/v6_ledger.jsonl', 'paper_trading/v7_ledger.jsonl',
-                 'paper_trading/alpaca_paper_ledger.jsonl', 'paper_trading/signals',
+                 'paper_trading/alpaca_paper_ledger.jsonl', 'paper_trading/alpaca_rehearsal_ledger.jsonl',
+                 'paper_trading/signals',
                  'reports/v5_forward', 'reports/v6_forward', 'reports/v7_forward') + $Extra |
         Where-Object { $_ -and (Test-Path -LiteralPath (Join-Path $Repo $_)) }
     if ($outputs) { Invoke-Native 'git' (@('add', '--') + $outputs) }

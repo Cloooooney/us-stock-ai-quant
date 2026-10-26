@@ -21,6 +21,17 @@ Mirrors the frozen model's monthly signal (V6 by default, see `config.json`) in 
 
 After that the monthly cycle handles everything. Without keys the step reports `not_configured` and does nothing.
 
+## Rehearsal Before Formal Trading
+
+Before the first formal month, the order path can be exercised for real:
+
+```powershell
+.\.venv\Scripts\python.exe -m broker.paper_rebalance --preview    # what it would send; sends nothing
+.\.venv\Scripts\python.exe -m broker.paper_rebalance --rehearse   # sends those orders now
+```
+
+Both use the frozen model's holdings for the latest completed month-end and current Yahoo Finance closes for sizing. Rehearsal orders use client IDs starting with `rehearsal-`, are recorded in `paper_trading/alpaca_rehearsal_ledger.jsonl` with `rehearsal_only: true`, and are not part of any forward record. They are refused once formal paper orders exist. The first formal rebalance simply trades from the positions the rehearsal left.
+
 ## What Happens Each Month
 
 | Run | Action |

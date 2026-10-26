@@ -181,3 +181,37 @@ def test_preview_plans_without_sending_or_writing(tmp_path):
     assert len(result["planned_orders"]) == 20 and not client.submitted
     assert result["estimated_buy_value"] <= 100_000 * 0.98
     assert not (tmp_path / "paper_trading").exists()
+
+
+def test_rehearsal_sends_labelled_orders_once_and_closes_after_formal_trading(tmp_path):
+    import pandas as pd
+
+    from broker.paper_rebalance import rehearse
+
+    workspace(tmp_path)
+    client = FakeClient()
+    selected = pd.DataFrame({"ticker": TARGETS, "portfolio_rank": range(1, 21), "date": pd.Timestamp("2026-09-30")})
+    kwargs = dict(client=client, selection_builder=lambda root, model: selected,
+                  prices_lookup=lambda symbols: {s: 50.0 for s in symbols},
+                  ledger=tmp_path / "rehearsal.jsonl", broker_ledger=tmp_path / "broker.jsonl")
+    first = rehearse(tmp_path, **kwargs)
+    assert first["status"] == "rehearsal_orders_sent" and first["orders"] == 20 and len(client.submitted) == 20
+    assert all(cid.startswith("rehearsal-v6-2026-09-30-") for cid in client.orders)
+    [event] = read_events(tmp_path / "rehearsal.jsonl")
+    assert event["rehearsal_only"] is True and event["official_forward_result"] is False
+
+    assert rehearse(tmp_path, **kwargs)["status"] == "already_rehearsed" and len(client.submitted) == 20
+
+    append(tmp_path / "broker.jsonl", {"event_type": "ORDERS", "signal_date": "2026-10-30", "submitted": []},
+           timestamp="2026-11-02T22:00:00Z")
+    with pytest.raises(BrokerError, match="formal paper trading has started"):
+        rehearse(tmp_path, **kwargs)
+
+
+def test_formal_rebalance_trades_from_rehearsal_positions():
+    held = {t: 96.0 for t in TARGETS[:15]} | {"OLD1": 39.0}  # 98 wanted: inside the band
+    targets = TARGETS[:15] + ["NEW1", "NEW2", "NEW3", "NEW4", "NEW5"]
+    prices = {s: 50.0 for s in set(targets) | set(held)}
+    plan = plan_orders(targets, 100_000, prices, held, cash_buffer=0.02, band=0.10, max_order_fraction=0.10)
+    assert {o["symbol"] for o in plan} == {"OLD1", "NEW1", "NEW2", "NEW3", "NEW4", "NEW5"}
+    assert plan[0] == {"symbol": "OLD1", "side": "sell", "qty": 39, "reference_price": 50.0}
