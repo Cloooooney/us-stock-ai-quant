@@ -23,15 +23,19 @@ Priorities: **high** = candidate for the next quarterly batch; **medium** = wort
 | 1 | FI-001 | Lazy Prices: year-over-year change in 10-K/10-Q text | high | proposed for Batch 2 (needs text pipeline) |
 | 2 | FI-002 | Residual (idiosyncratic) momentum | high | proposed for Batch 2 (caveat added 2026-10-26) |
 | 3 | FI-009 | Net external financing (equity plus debt, cash-flow statement) | medium | see forking-path warning; decide at Batch 2 pre-registration |
-| 4 | FI-010 | Off-season / long-horizon seasonal momentum | medium | added 2026-10-26; overlap check with V6 momentum first |
-| 5 | FI-003 | Signal freshness / event-time formation (method, not a factor) | medium | design note for a future V8 |
-| 6 | FI-004 | Intangible-adjusted book-to-market | low (was medium) | demoted 2026-10-26; data-history spike only if value is revisited |
-| 7 | FI-005 | Earnings announcement return (EAR) from 8-K Item 2.02 dates | low | evidence weak outside microcaps |
-| 8 | FI-006 | Short-interest surprise / days to cover (FINRA) | low | history too short; start archiving |
-| 9 | FI-011 | Change in institutional ownership breadth (SEC 13F data sets) | low | added 2026-10-26; data spike only |
-| 10 | FI-012 | Technology-linked momentum (USPTO patent links) | low | added 2026-10-26; heavy engineering |
-| 11 | FI-007 | Opportunistic insider purchases (Form 4) | low | sparse in S&P 500 |
-| 12 | FI-008 | Gross-profit surprise | low | overlaps V7 improvement sleeve |
+| 4 | FI-010 | Off-season / long-horizon seasonal momentum | medium | added 2026-10-26; overlap check with V6 momentum first; history check added 2026-11-02 |
+| 5 | FI-013 | Real-time investor alpha as an added acceptance diagnostic (method, not a factor) | medium | added 2026-11-02; decide at Batch 2 pre-registration; not a trial |
+| 6 | FI-003 | Signal freshness / event-time formation (method, not a factor) | medium | design note for a future V8 |
+| 7 | FI-004 | Intangible-adjusted book-to-market | low (was medium) | demoted 2026-10-26; data-history spike only if value is revisited |
+| 8 | FI-014 | Operating leverage (operating costs over assets) | low | added 2026-11-02; overlap check first |
+| 9 | FI-015 | R&D over market cap | low | added 2026-11-02; partial coverage, overlaps FI-004 |
+| 10 | FI-005 | Earnings announcement return (EAR) from 8-K Item 2.02 dates | low | evidence weak outside microcaps |
+| 11 | FI-006 | Short-interest surprise / days to cover (FINRA) | low | history too short; start archiving |
+| 12 | FI-016 | Short-volume ratio (FINRA daily files) | low | added 2026-11-02; history check first |
+| 13 | FI-011 | Change in institutional ownership breadth (SEC 13F data sets) | low | added 2026-10-26; data spike only |
+| 14 | FI-012 | Technology-linked momentum (USPTO patent links) | low | added 2026-10-26; heavy engineering |
+| 15 | FI-007 | Opportunistic insider purchases (Form 4) | low | sparse in S&P 500 |
+| 16 | FI-008 | Gross-profit surprise | low | overlaps V7 improvement sleeve |
 
 Already tested or queued elsewhere, not duplicated here: net share issuance, return seasonality, 52-week-high ratio, and one-month reversal (factor-lab Batch 1, pre-registered 2026-10-19); profitability improvement `d_roa`, `d_net_margin`, `d_fcf_margin` (V7 improvement sleeve).
 
@@ -42,6 +46,10 @@ Already tested or queued elsewhere, not duplicated here: net share issuance, ret
 Chen and Welch, "What Useful Alphas?" (July 2026 draft, <https://arxiv.org/abs/2607.06502>), use the Open Source Asset Pricing data (about 200 published anomalies) to ask what a non-microcap manager could have earned after 2005. In the top-3,000 / top-90%-of-cap universe after 2005 the median long-short anomaly earned about 7 bp a month (t 0.45; only 67% positive); post-2005 alone removes about 60% of the in-sample return and the large-cap restriction about half of the rest. After trading costs the mean is roughly zero, and a luck adjustment shrinks the best survivor from 66 bp to about 6 bp. Categories with something left: **profitability** (cash-based and R&D-adjusted operating profitability, gross profitability), **financing** (net external financing), the realized-implied volatility spread, and **seasonal / off-season momentum**. Plain momentum, value, and intangibles had essentially nothing left in that universe.
 
 Implication for this backlog: the prior for any single candidate on the S&P 500 is close to zero, so Batch 2 should stay small (two or three candidates), favor information types outside OSAP's price/accounting set (text, FI-001), and treat a near-miss in Batch 1 as no evidence at all.
+
+**2026-11-02 additions.** Two more sources point the same way. Loughran, "Do Factors Matter?", *Critical Finance Review* 2025, <https://nowpublishers.com/article/Details/CFR-0160>, finds over 1983-2021 that most Fama-French six-factor and q5 characteristics have not worked for large firms for a long time; stocks making up under 8% of market value drive the patterns. Goncalves, Loudis, and Ogden, "Real Time Investor Alphas and the Survival of the Anomaly Zoo" (July 2026, working paper, <https://portal.northernfinanceassociation.org/viewp.php?n=2240218512>), find that across 177 anomalies the average post-publication factor-regression alpha is highly significant (t 9.43) while an investor who must estimate the allocation in real time gets about zero (t 0.38); see FI-013.
+
+Reading note on Chen and Welch: their "intangibles are dead" statement is about the category median. R&D over market cap (raw 41 bp, shrunk 3 bp a month) and operating leverage (raw 38 bp, shrunk 3 bp) still appear in their top-10 table, and the paper does not reconcile the two statements or classify them. Those two were missed in the 2026-10-26 run and are now FI-014 and FI-015.
 
 ## Idea Cards
 
@@ -56,6 +64,7 @@ Implication for this backlog: the prior for any single candidate on the S&P 500 
 - **Turnover / cost:** Low. The signal changes once per filing (quarterly), monthly holding works in the source; cost sensitivity small.
 - **Main risk:** Engineering effort (download, section extraction, tokenization) and the temptation to tune text choices. Pre-register one definition (full-document cosine similarity on word counts, same form type, prior year) before looking at any result.
 - **2026-10-26 update:** No rigorous post-2020 study found. A QuantConnect student replication (2020-06/2026, 100 most liquid US stocks, long-only top 25 by similarity, Brain paid scores) reports Sharpe 0.56 vs SPY 0.53 with no factor alpha and only 9 of 25 parameter settings beating SPY (<https://www.quantconnect.com/research/20966/filing-language-stability-as-a-selection-signal/>). Weak, unrefereed, and paid-data based, so it neither supports nor refutes the idea; decay remains unknown. Text signals are absent from the Chen-Welch anomaly set, which is a reason to keep FI-001 first despite the low base rate.
+- **2026-11-02 update:** A targeted search again found no rigorous post-2020 return study, so decay remains unknown. Jehnen, Villalba-Diez, and Ordieres-Mere, *Frontiers in Artificial Intelligence* 2026, <https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2026.1752103/xml>, show on S&P 500 10-K MD&A (test years 2022-2023) that text topics add about 2 points of ROC-AUC to forecasting the direction of ROA change. This is indirect support that filing text carries fundamental information on large caps; it has no portfolio test.
 
 ### FI-002 Residual (idiosyncratic) momentum (high)
 
@@ -67,6 +76,7 @@ Implication for this backlog: the prior for any single candidate on the S&P 500 
 - **Overlap:** Partly overlaps V6's momentum sleeve. The acceptance test must therefore be incremental: intercept after FF5 plus UMD **and** low enough correlation with V6 to add information. If it only replaces V6 momentum, that is a V8 design change, not a new factor.
 - **Turnover / cost:** Medium (similar to 12-1 momentum, somewhat lower in the literature). Moderate cost sensitivity at 10-25 bps.
 - **2026-10-26 caveat:** Chen and Welch (2026) find the momentum category had essentially no return in large caps after 2005. Residual momentum was not reported separately there, but the base rate for a momentum variant on the S&P 500 is poor. Keep in Batch 2 only if the batch still has room after FI-001; the incremental-over-V6 test stays mandatory.
+- **2026-11-02 update:** A targeted search found no large-cap or net-of-cost evidence from the last year. The CXO summary of Blitz, Hanauer, and Vidojevic (data through 2015, <https://www.cxoadvisory.com/momentum-investing/idiosyncratic-pure-or-residual-momentum-as-a-stock-return-predictor>) reports gross results only, no large-cap split, and turnover modestly *higher* than conventional momentum, per the corresponding author. That conflicts with the "somewhat lower" turnover above; treat cost sensitivity as at least equal to 12-1 momentum until measured.
 
 ### FI-003 Signal freshness / event-time formation (medium, method)
 
@@ -111,6 +121,7 @@ Implication for this backlog: the prior for any single candidate on the S&P 500 
 - **Description:** Unexpected quarterly gross profit (seasonal change scaled by assets or its volatility) predicts returns.
 - **Source:** Yang, Cai, Rhee, and Wu, "Unexpected Gross Profit and Cross-Sectional Stock Returns", SSRN 7268289, <https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7268289> (abstract could not be retrieved this week; details unverified).
 - **Overlap:** Close cousin of the V7 improvement sleeve (`d_net_margin`) and of PEAD. Do not test separately unless V7's sleeve fails and the paper shows gross profit carries distinct information. Revisit after reading the paper.
+- **2026-11-02 update:** The Yang et al. abstract still could not be found. The older source is Chiu and Haight, "Gross Profit Surprises and Future Stock Returns" (October 2014 draft, <https://cba.lmu.edu/media/lmucollegeofbusinessadministration/undergrad/Gross%20Profit%20Surprises.pdf>): 1977-2010, seasonal change in quarterly gross profit scaled by market value, Carhart alpha 0.95% a month (t 8.49), incremental to earnings surprise. It reports no large-cap result and ends in 2010, so priority stays low.
 
 ### FI-009 Net external financing (medium)
 
@@ -133,6 +144,7 @@ Implication for this backlog: the prior for any single candidate on the S&P 500 
 - **Overlap:** Long-horizon return averages correlate with V6 12-month momentum and with long-term reversal. Requires a cheap overlap check (correlation with V6's momentum sleeve) before any pre-registration, which uses no returns and does not spend the sample.
 - **Turnover / cost:** Medium-high (the calendar-month component changes every month); cost-sensitive at 25 bps.
 - **Why medium, not high:** a seasonality variant failed here already, and choosing among seasonality definitions after that result is a forking path. Include only with a definition fixed from the literature.
+- **2026-11-02 correction:** The two Chen-Welch survivors are "off-season momentum" (raw 54 bp, shrunk 5 bp a month) and "seasonal momentum (16yr+)" (raw 48 bp, shrunk 4 bp). The description above cites years 2-5 and 6-10; those horizons are not the 16yr+ survivor. A 16-year lookback needs prices from about 1996 for a 2012 signal, which this project's monthly dataset (first signal January 2012) probably cannot supply. Only the off-season variant is a candidate, and its lookback must be checked against available price history (not returns) before pre-registration.
 
 ### FI-011 Change in institutional ownership breadth (low)
 
@@ -154,6 +166,46 @@ Implication for this backlog: the prior for any single candidate on the S&P 500 
 - **Overlap:** Distinct from industry momentum and customer momentum in the source; partly related to V6 momentum.
 - **Turnover / cost:** High (monthly peer-return signal). Cost-sensitive.
 
+### FI-013 Real-time investor alpha as an added acceptance diagnostic (medium, method)
+
+- **Description:** Besides the factor-regression intercept, report the Sharpe gain an investor would have had combining the candidate with the market using weights estimated only from past data.
+- **Rationale:** A regression alpha uses the full-sample optimal weight, which nobody knew in advance. If the optimal weight is unstable, the alpha is not attainable in real time.
+- **Primary source:** Goncalves, Loudis, and Ogden (July 2026, working paper, unrefereed), <https://portal.northernfinanceassociation.org/viewp.php?n=2240218512>. 177 anomalies, 1926-2023.
+- **Evidence:** Average post-publication factor alpha t 9.43; average real-time alpha t 0.38. Median optimal weight falls from 0.63 to 0.36 after publication, with rank correlation 0.39 between the two. 10.7% of real-time alphas have t > 1.64, against 48.0% for regression alphas. Combining anomalies can give positive real-time alphas, but only with shrinkage.
+- **Relevance:** The project's acceptance test is exactly a regression intercept, so it may accept signals that were not usable in practice. V6's fixed equal-weight sleeves avoid estimating weights, which is in keeping with this result.
+- **Data / overlap:** No new data. Not a factor. Applied only to candidates already being tested, so it adds no trial, but it must be fixed in the pre-registration before results are seen, and the paper's exact estimator should be read first. With only about 130 monthly observations in 2012-2022 it would be noisy, so use it as a reported diagnostic, not a new pass condition, unless Batch 2 decides otherwise in advance.
+- **Turnover / cost:** Not applicable.
+
+### FI-014 Operating leverage (low)
+
+- **Description:** Operating costs (cost of goods sold plus SG&A) divided by total assets; higher values predict higher returns.
+- **Rationale:** Fixed operating costs amplify exposure to demand shocks, so the premium is a risk story rather than mispricing.
+- **Primary source:** Novy-Marx, "Operating Leverage", *Review of Finance* 2011. Post-2005 large-cap survival: Chen and Welch (2026), <https://arxiv.org/abs/2607.06502>, raw 38 bp, shrunk 3 bp a month.
+- **Out-of-sample / decay:** Among the top-10 survivors, but shrunk return is trivial and no individual t-statistic was checked this week.
+- **Data / point-in-time:** Free XBRL cost and asset tags from `filed + 1 day`. COGS tags vary by issuer and financials have no comparable measure, so coverage needs a spike.
+- **Overlap:** Not named in V6 or V7, but the numerator relates to margins and asset turnover, so it may overlap V6 quality and FF5 RMW. A cross-sectional correlation check uses no returns and should come first.
+- **Turnover / cost:** Low (slow-moving annual-style ratio).
+
+### FI-015 R&D over market cap (low)
+
+- **Description:** Trailing R&D expense divided by market value; higher values predict higher returns.
+- **Rationale:** Expensing R&D understates the value of research-intensive firms, and investors may under-price the resulting intangibles.
+- **Primary source:** Chan, Lakonishok, and Sougiannis, "The Stock Market Valuation of Research and Development Expenditures", *Journal of Finance* 2001. Post-2005 large-cap survival: Chen and Welch (2026), raw 41 bp, shrunk 3 bp a month.
+- **Out-of-sample / decay:** Survives in the Chen-Welch table even though the intangibles category median is zero; the paper does not explain the difference.
+- **Data / point-in-time:** Free XBRL R&D tag from `filed + 1 day`, usable from 2012 without the long capitalization history FI-004 needs.
+- **Overlap:** Same economic bet as FI-004, in a simpler form, so test at most one. Many S&P 500 firms report no R&D, so it is effectively a tilt within technology and health care; any test should treat that sector concentration as a known risk.
+- **Turnover / cost:** Low.
+
+### FI-016 Short-volume ratio (low)
+
+- **Description:** Daily FINRA-reported short sale volume divided by reported volume, as a level and relative to the stock's own norm; high values predict lower returns.
+- **Rationale:** Short sellers are relatively informed, and the abnormal ratio may reveal short-horizon private information before it is priced.
+- **Primary source:** HKUST thesis, 2019, sample 2010-2018, <https://lbezone.hkust.edu.hk/rse/?p=51474> (title and author not shown on the page). Not peer-reviewed. Abnormal-ratio predictability is reported as concentrated in large, liquid stocks, which is unusual and is the only reason this is listed.
+- **Out-of-sample / decay:** None found. Sample ends 2018.
+- **Data / point-in-time:** Free and published by 6 p.m. ET on trade date, with occasional "Updated" files, <https://www.finra.org/finra-data/browse-catalog/short-sale-volume-data/daily-short-sale-volume-files>. FINRA's page shows consolidated files from August 2018 only; the thesis uses data from 2010, so older files must exist somewhere, but that was not verified. Without them the 2012-2022 development period cannot be covered. Keep original and updated versions when archiving.
+- **Overlap:** Same family as FI-006, with different data. Not in FF5+UMD, V6, or V7. The data cover only trades reported to FINRA facilities, and the ratio includes market-maker shorting, so it is noisy.
+- **Turnover / cost:** Unmeasured. The daily ratio is volatile, but the source reports predictability fading slowly over up to a year, so a monthly version may be feasible. Assume medium-high until shown otherwise.
+
 ## Rejected
 
 | Idea | Source | Reason |
@@ -171,12 +223,19 @@ Implication for this backlog: the prior for any single candidate on the S&P 500 
 | "Mosaics of Predictability" panel-tree clusters (added 2026-10-26) | Cong, Feng, He, and Wang, NBER w35158, 2026, <https://www.nber.org/papers/w35158> | A machine-learning forecasting method over many characteristics, not a single interpretable predictor; would require model search on the already-inspected sample. |
 | EDGAR search-traffic attention (added 2026-10-26) | Drake et al. / Lee et al.; SEC EDGAR log files, <https://www.sec.gov/about/data/edgar-log-file-data-sets> | Logs missing July 2017-May 2020 and end June 2025, so neither the development period nor a forward record can be built. |
 
+| Earnings date advances and delays (added 2026-11-02) | Johnson and So, "Time Will Tell", *JFQA* 2018, <https://ideas.repec.org/a/cup/jfinqa/v53y2018i06p2431-2464_00.html> | Needs the scheduling disclosure weeks ahead of the announcement, sourced from a paid calendar (Wall Street Horizon). Actual 8-K Item 2.02 dates reveal an advance only at the announcement, so a free proxy is a different signal the evidence does not cover. |
+| Overnight vs intraday return continuation (added 2026-11-02) | Lou, Polk, and Skouras, "A Tug of War", *JFE* 2019, <https://personal.lse.ac.uk/polk/research/TugOfWar.pdf> | Overnight and intraday legs largely offset (3.47% against -3.02% a month in the value-weight overnight sort, 1993-2013), so capturing it needs daily open/close trading, incompatible with a monthly book. The authors say costs make it much less attractive. |
+| Topic features from 10-K MD&A (FinTextSim) (added 2026-11-02) | Jehnen et al., *Frontiers in AI* 2026 | Classifies ROA direction, with no return or portfolio test; a learned model over filings, not a defined predictor. Noted under FI-001 as indirect support only. |
+| GPT tone of 10-K risk factors (added 2026-11-02) | Magner, Henriquez, and Sanhueza, *Finance Research Letters* 2025, <https://ideas.repec.org/a/eee/finlet/v81y2025ics1544612325007317.html> | Predicts index returns, not the cross-section; LLM training data cannot be made point-in-time for a historical test. |
+
 ## Data Sources to Watch
 
 - **EDGAR full-text filings** (free, acceptance timestamps): needed for FI-001.
 - **EDGAR 8-K Item 2.02** (free): exact earnings-announcement dates, useful for FI-003 and FI-005 and for checking the `filed + 1 day` convention.
 - **FINRA equity short interest** (free, twice monthly, ~7 business-day lag, rolling five-year API): archive forward for FI-006.
-- **EDGAR Form 4** (free XML): FI-007.
+- **EDGAR Form 4** (free XML): FI-007. The SEC also publishes structured Insider Transactions Data Sets (Forms 3, 4, 5; <https://catalog-beta.data.gov/dataset/insider-transactions-data-sets>), which would avoid XML parsing; coverage dates and filing-date fields were not stated on that page and need confirming.
+- **FINRA daily short sale volume** (free, same-day, consolidated files from August 2018 on FINRA's page): FI-016. Confirm where earlier files live.
+- **Form SHO / Rule 13f-2 aggregate short positions:** not available. Reporting exemption extended to January 2, 2028, with first filings due February 14, 2028, while the SEC responds to a Fifth Circuit remand and may amend the rule (<https://www.morganlewis.com/pubs/2025/12/short-sale-reporting-on-form-sho-compliance-date-further-extended-to-2028>). Recheck in 2027.
 - **SEC fails-to-deliver data** (free, since 2004): no strong large-cap evidence found yet; noted only.
 - **SEC Form 13F data sets** (free, quarterly, July 2013 onward, <https://www.sec.gov/dera/data/form-13f>): FI-011. Confirm the acceptance-date field from the table definitions before any spike.
 - **SEC Financial Statement and Notes data sets** (free, <https://www.sec.gov/data-research/financial-statement-notes-data-sets>): bulk XBRL including notes; a possible cross-check for the existing XBRL pipeline (single-source risk in ROADMAP Phase 1).
@@ -184,6 +243,16 @@ Implication for this backlog: the prior for any single candidate on the S&P 500 
 - **Open Source Asset Pricing** (Chen and Zimmermann, <https://www.openassetpricing.com/>): use its signal documentation to check whether a proposed definition matches the literature before pre-registering. Its portfolios are CRSP/Compustat-based and are reference only, not project inputs.
 
 ## Changelog
+
+### 2026-11-02
+
+- Third scouting run, 17 searches. No new paper this week offers a strong new predictor for large caps.
+- Read `reports/factor_lab/trial_registry.csv` on `main`: still five candidates. With a Bonferroni one-sided 5% test on the cumulative count, the threshold for Batch 2 would be t >= 2.45 with two candidates (seven total) or t >= 2.50 with three (eight total), assuming the existing formula is carried forward.
+- Added FI-013 real-time investor alpha (medium, method), FI-014 operating leverage (low), FI-015 R&D over market cap (low), FI-016 short-volume ratio (low). FI-014 and FI-015 come from re-reading the Chen-Welch survivor table, which the last run did not fully record; they are not new research.
+- Base-rate section: added Loughran (2025) and Goncalves, Loudis, and Ogden (2026), and a note on the Chen-Welch category median versus individual survivors.
+- Corrected FI-010: the 16yr+ survivor is outside this project's likely history; only the off-season variant remains a candidate. FI-002: noted conflicting turnover evidence. FI-001 and FI-008: no change in priority.
+- Rejected four ideas (earnings date revisions, overnight/intraday continuation, FinTextSim topics, GPT risk-factor tone). Added Form SHO delay, insider data sets, and FINRA daily short volume to data sources.
+- Recommendation for Batch 2 unchanged: FI-001 first; FI-002 only if the batch has room; FI-009 only with the independent rationale already required. New this week: fix FI-013 as a reported diagnostic in the pre-registration. No new factor qualifies.
 
 ### 2026-10-26
 
