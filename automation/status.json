@@ -1,7 +1,7 @@
 {
-  "last_attempt_utc": "2026-10-20T21:30:53.765634+00:00",
-  "result": "success",
-  "step": "run",
+  "last_attempt_utc": "2026-11-03T22:30:04.400156+00:00",
+  "result": "failed",
+  "step": "update_code",
   "ledgers": {
     "v5": {
       "exists": false
@@ -15,5 +15,16 @@
   },
   "alpaca_paper": {
     "exists": false
-  }
+  },
+  "log_tail": [
+    "\ufeff2026-11-03T14:30:03 > git checkout main",
+    "2026-11-03T14:30:03   Already on 'main'",
+    "2026-11-03T14:30:03   M\tautomation/status.json",
+    "2026-11-03T14:30:03   Your branch is up to date with 'origin/main'.",
+    "2026-11-03T14:30:03 > git pull --rebase origin main",
+    "2026-11-03T14:30:03   error: cannot pull with rebase: You have unstaged changes.",
+    "2026-11-03T14:30:03   error: Please commit or stash them.",
+    "2026-11-03T14:30:03 FAILED during update_code: git exited with code 128",
+    "2026-11-03T14:30:03 > D:\\\u7f8e\u80a1AI\u91cf\u5316\\.venv\\Scripts\\python.exe -m automation.status --result failed --step update_code --log D:\\\u7f8e\u80a1AI\u91cf\u5316\\automation\\logs\\cycle_2026-11-03_143003.log"
+  ]
 }
