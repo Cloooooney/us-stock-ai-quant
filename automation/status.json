@@ -1,30 +1,59 @@
 {
-  "last_attempt_utc": "2026-11-03T22:30:04.400156+00:00",
-  "result": "failed",
-  "step": "update_code",
+  "last_attempt_utc": "2026-11-06T22:36:02.246106+00:00",
+  "result": "success",
+  "step": "run",
   "ledgers": {
     "v5": {
-      "exists": false
+      "exists": true,
+      "valid": true,
+      "detail": null,
+      "tail_hash": "3ad6f42974e84b5ebfd2013aaa174046605af52e711a2d6a90e5e4ec651053d9",
+      "events": {
+        "SIGNAL": 1,
+        "ENTRY": 1
+      },
+      "latest_signal": "2026-10-30",
+      "signals_without_entry": [],
+      "periods": 0,
+      "latest_period": null
     },
     "v6": {
-      "exists": false
+      "exists": true,
+      "valid": true,
+      "detail": null,
+      "tail_hash": "329f147e0d1e62002fb99c08beb176e85d3fe8203499ccf71cd104ae376b59da",
+      "events": {
+        "SIGNAL": 1,
+        "ENTRY": 1
+      },
+      "latest_signal": "2026-10-30",
+      "signals_without_entry": [],
+      "periods": 0,
+      "latest_period": null
     },
     "v7": {
-      "exists": false
+      "exists": true,
+      "valid": true,
+      "detail": null,
+      "tail_hash": "61c754d27d1fd592a4d8db1e095684cbb344c2a983b4854765f95cdf05b2fbb0",
+      "events": {
+        "SIGNAL": 1,
+        "ENTRY": 1
+      },
+      "latest_signal": "2026-10-30",
+      "signals_without_entry": [],
+      "periods": 0,
+      "latest_period": null
     }
   },
   "alpaca_paper": {
-    "exists": false
-  },
-  "log_tail": [
-    "\ufeff2026-11-03T14:30:03 > git checkout main",
-    "2026-11-03T14:30:03   Already on 'main'",
-    "2026-11-03T14:30:03   M\tautomation/status.json",
-    "2026-11-03T14:30:03   Your branch is up to date with 'origin/main'.",
-    "2026-11-03T14:30:03 > git pull --rebase origin main",
-    "2026-11-03T14:30:03   error: cannot pull with rebase: You have unstaged changes.",
-    "2026-11-03T14:30:03   error: Please commit or stash them.",
-    "2026-11-03T14:30:03 FAILED during update_code: git exited with code 128",
-    "2026-11-03T14:30:03 > D:\\\u7f8e\u80a1AI\u91cf\u5316\\.venv\\Scripts\\python.exe -m automation.status --result failed --step update_code --log D:\\\u7f8e\u80a1AI\u91cf\u5316\\automation\\logs\\cycle_2026-11-03_143003.log"
-  ]
+    "exists": true,
+    "valid": true,
+    "detail": null,
+    "latest_orders": "2026-10-30",
+    "order_errors": 0,
+    "unreconciled": [
+      "2026-10-30"
+    ]
+  }
 }
