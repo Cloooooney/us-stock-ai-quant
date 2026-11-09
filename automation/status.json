@@ -1,5 +1,5 @@
 {
-  "last_attempt_utc": "2026-11-06T22:36:02.246106+00:00",
+  "last_attempt_utc": "2026-11-09T22:35:39.929270+00:00",
   "result": "success",
   "step": "run",
   "ledgers": {
@@ -52,8 +52,6 @@
     "detail": null,
     "latest_orders": "2026-10-30",
     "order_errors": 0,
-    "unreconciled": [
-      "2026-10-30"
-    ]
+    "unreconciled": []
   }
 }
