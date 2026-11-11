@@ -93,6 +93,9 @@ try {
 
     $step = 'update_code'
     Invoke-Native 'git' @('checkout', 'main')
+    # A run with nothing to publish leaves status.json modified but uncommitted; it is rewritten
+    # below anyway, so drop that copy first or 'git pull --rebase' refuses to run.
+    Invoke-Native 'git' @('checkout', '--', 'automation/status.json')
     # --rebase keeps any forward-record commit that an earlier run could not push.
     Invoke-Native 'git' @('pull', '--rebase', 'origin', 'main')
     $jobs = @(Get-PendingJobs)  # @() keeps a single job as an array in Windows PowerShell 5.1
